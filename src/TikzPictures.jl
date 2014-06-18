@@ -73,10 +73,16 @@ function save(f::SVG, tp::TikzPicture)
   end
 end
 
+# this is needed to work with multiple images in ijulia (kind of a hack)
+global glyphid = 0
+
 function Base.writemime(f::IO, ::MIME"image/svg+xml", tp::TikzPicture)
+  global glyphid
   filename = "tikzpicture"
   save(SVG(filename), tp)
   s = readall("$filename.svg")
+  s = replace(s, "glyph", "glyph$(glyphid)")
+  glyphid += 1
   println(f, s)
   rm("$filename.svg")
 end
