@@ -6,7 +6,8 @@ type TikzPicture
   data::String
   options::String
   preamble::String
-  TikzPicture(data::String; options="", preamble="") = new(data, options, preamble)
+  usePDF2SVG::Bool
+  TikzPicture(data::String; options="", preamble="", usePDF2SVG=true) = new(data, options, preamble, usePDF2SVG)
 end
 
 type PDF
@@ -54,13 +55,19 @@ end
 function save(f::SVG, tp::TikzPicture)
   try
     filename = f.filename
-    save(TEX(filename * ".tex"), tp)
-    success(`lualatex --output-format=dvi $filename`)
-    success(`dvisvgm --no-fonts $filename`)
-    rm("$filename.tex")
-    rm("$filename.aux")
-    rm("$filename.dvi")
-    rm("$filename.log")
+    if tp.usePDF2SVG
+      save(PDF(filename), tp)
+      success(`pdf2svg $filename.pdf $filename.svg`)
+      rm("$filename.pdf")
+    else
+      save(TEX("$filename.tex"), tp)
+      success(`lualatex --output-format=dvi $filename`)
+      success(`dvisvgm --no-fonts $filename`)
+      rm("$filename.tex")
+      rm("$filename.aux")
+      rm("$filename.dvi")
+      rm("$filename.log")
+    end
   catch
     error("Error saving as SVG")
   end
