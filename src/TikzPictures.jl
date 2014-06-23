@@ -7,7 +7,8 @@ type TikzPicture
   options::String
   preamble::String
   usePDF2SVG::Bool
-  TikzPicture(data::String; options="", preamble="", usePDF2SVG=true) = new(data, options, preamble, usePDF2SVG)
+  enableWrite18::Bool
+  TikzPicture(data::String; options="", preamble="", usePDF2SVG=true, enableWrite18=true) = new(data, options, preamble, usePDF2SVG, enableWrite18)
 end
 
 type PDF
@@ -43,8 +44,12 @@ function save(f::PDF, tp::TikzPicture)
   try
     filename = f.filename
     save(TEX(filename * ".tex"), tp)
-    success(`lualatex $filename`)
-    #rm("$filename.tex")
+    if tp.enableWrite18
+      success(`lualatex --enable-write18 $filename`)
+    else
+      success(`lualatex $filename`)
+    end
+    rm("$filename.tex")
     rm("$filename.aux")
     rm("$filename.log")
   catch
@@ -61,7 +66,11 @@ function save(f::SVG, tp::TikzPicture)
       rm("$filename.pdf")
     else
       save(TEX("$filename.tex"), tp)
-      success(`lualatex --output-format=dvi $filename`)
+      if tp.enableWrite18
+        success(`lualatex --enable-write18 --output-format=dvi $filename`)
+      else
+        success(`lualatex --output-format=dvi $filename`)
+      end
       success(`dvisvgm --no-fonts $filename`)
       rm("$filename.tex")
       rm("$filename.aux")
@@ -74,15 +83,18 @@ function save(f::SVG, tp::TikzPicture)
 end
 
 # this is needed to work with multiple images in ijulia (kind of a hack)
-global glyphid = 0
+global _tikzid = uint32(time() * 10)
 
 function Base.writemime(f::IO, ::MIME"image/svg+xml", tp::TikzPicture)
-  global glyphid
+  global _tikzid
   filename = "tikzpicture"
   save(SVG(filename), tp)
   s = readall("$filename.svg")
-  s = replace(s, "glyph", "glyph$(glyphid)")
-  glyphid += 1
+  s = replace(s, "glyph", "glyph-$(_tikzid)-")
+  s = replace(s, "clip", "clip-$(_tikzid)-")
+  s = replace(s, "\"image", "\"image-$(_tikzid)-")
+  s = replace(s, "#image", "#image-$(_tikzid)-")
+  _tikzid += 1
   println(f, s)
   rm("$filename.svg")
 end
