@@ -2,6 +2,8 @@ module TikzPictures
 
 export TikzPicture, PDF, TEX, SVG, save
 
+include("latex.jl")
+
 type TikzPicture
   data::String
   options::String
