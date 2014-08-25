@@ -11,23 +11,34 @@ type TikzPicture
   TikzPicture(data::String; options="", preamble="", usePDF2SVG=true, enableWrite18=true) = new(data, options, preamble, usePDF2SVG, enableWrite18)
 end
 
+function removeExtension(filename::String, extension::String)
+  if endswith(filename, extension) || endswith(filename, uppercase(extension))
+    return filename[1:(end - length(extension))]
+  else
+    return filename
+  end
+end
+
 type PDF
   filename::String
+  PDF(filename::String) = new(removeExtension(filename, ".pdf"))
 end
 
 type TEX
   filename::String
+  TEX(filename::String) = new(removeExtension(filename, ".tex"))
 end
 
 type SVG
   filename::String
+  SVG(filename::String) = new(removeExtension(filename, ".svg"))
 end
 
 Base.mimewritable(::MIME"image/svg+xml", tp::TikzPicture) = true
 
 function save(f::TEX, tp::TikzPicture)
   filename = f.filename
-  tex = open("$filename", "w")
+  tex = open("$(filename).tex", "w")
   println(tex, "\\documentclass[tikz]{standalone}")
   println(tex, tp.preamble)
   println(tex, "\\begin{document}")
