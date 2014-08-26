@@ -1,6 +1,19 @@
 module TikzPictures
 
-export TikzPicture, PDF, TEX, SVG, save
+export TikzPicture, PDF, TEX, SVG, save, tikzDeleteIntermediate
+
+_tikzDeleteIntermediate = true
+
+function tikzDeleteIntermediate(value::Bool)
+  global _tikzDeleteIntermediate
+  _tikzDeleteIntermediate = value
+  nothing
+end
+
+function tikzDeleteIntermediate()
+  global _tikzDeleteIntermediate
+  _tikzDeleteIntermediate
+end
 
 include("latex.jl")
 
@@ -62,9 +75,11 @@ function save(f::PDF, tp::TikzPicture)
     else
       success(`lualatex $filename`)
     end
-    rm("$filename.tex")
-    rm("$filename.aux")
-    rm("$filename.log")
+    if tikzDeleteIntermediate()
+      rm("$filename.tex")
+      rm("$filename.aux")
+      rm("$filename.log")
+    end
   catch
     error("Error saving as PDF.")
   end
@@ -76,7 +91,9 @@ function save(f::SVG, tp::TikzPicture)
     if tp.usePDF2SVG
       save(PDF(filename), tp)
       success(`pdf2svg $filename.pdf $filename.svg`)
-      rm("$filename.pdf")
+      if tikzDeleteIntermediate()
+        rm("$filename.pdf")
+      end
     else
       save(TEX("$filename.tex"), tp)
       if tp.enableWrite18
@@ -85,10 +102,12 @@ function save(f::SVG, tp::TikzPicture)
         success(`lualatex --output-format=dvi $filename`)
       end
       success(`dvisvgm --no-fonts $filename`)
-      rm("$filename.tex")
-      rm("$filename.aux")
-      rm("$filename.dvi")
-      rm("$filename.log")
+      if tikzDeleteIntermediate()
+        rm("$filename.tex")
+        rm("$filename.aux")
+        rm("$filename.dvi")
+        rm("$filename.log")
+      end
     end
   catch
     error("Error saving as SVG")
@@ -109,7 +128,9 @@ function Base.writemime(f::IO, ::MIME"image/svg+xml", tp::TikzPicture)
   s = replace(s, "#image", "#image-$(_tikzid)-")
   _tikzid += 1
   println(f, s)
-  rm("$filename.svg")
+  if tikzDeleteIntermediate()
+    rm("$filename.svg")
+  end
 end
 
 end # module
