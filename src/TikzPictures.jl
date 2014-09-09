@@ -1,6 +1,7 @@
 module TikzPictures
 
-export TikzPicture, PDF, TEX, SVG, save, tikzDeleteIntermediate
+export TikzPicture, PDF, TEX, SVG, save, tikzDeleteIntermediate, TikzDocument, push!
+import Base: push!
 
 _tikzDeleteIntermediate = true
 
@@ -24,6 +25,18 @@ type TikzPicture
   usePDF2SVG::Bool
   enableWrite18::Bool
   TikzPicture(data::String; options="", preamble="", usePDF2SVG=true, enableWrite18=true) = new(data, options, preamble, usePDF2SVG, enableWrite18)
+end
+
+type TikzDocument
+  pictures::Vector{TikzPicture}
+  captions::Vector{ASCIIString}
+end
+
+TikzDocument() = TikzDocument(TikzPicture[], ASCIIString[])
+
+function push!(td::TikzDocument, tp::TikzPicture; caption="")
+  push!(td.pictures, tp)
+  push!(td.captions, caption)
 end
 
 function removeExtension(filename::String, extension::String)
@@ -66,6 +79,38 @@ function save(f::TEX, tp::TikzPicture)
   close(tex)
 end
 
+function save(f::TEX, td::TikzDocument)
+  if isempty(td.pictures)
+    error("TikzDocument does not contain pictures")
+  end
+  filename = f.filename
+  tex = open("$(filename).tex", "w")
+  println(tex, "\\documentclass{article}")
+  println(tex, "\\usepackage{caption}")
+  println(tex, "\\usepackage{tikz}")
+  println(tex, td.pictures[1].preamble)
+  println(tex, "\\begin{document}")
+  println(tex, "\\centering")
+  @assert length(td.pictures) == length(td.captions)
+  i = 1
+  for tp in td.pictures
+    println(tex, "\\centering")
+    print(tex, "\\begin{tikzpicture}[")
+    print(tex, tp.options)
+    println(tex, "]")
+    println(tex, tp.data)
+    println(tex, "\\end{tikzpicture}")
+    print(tex, "\\captionof{figure}{")
+    print(tex, td.captions[i])
+    println(tex, "}")
+    println(tex, "\\vspace{5ex}")
+    println(tex)
+    i += 1
+  end
+  println(tex, "\\end{document}")
+  close(tex)
+end
+
 function save(f::PDF, tp::TikzPicture)
   try
     filename = f.filename
@@ -84,6 +129,29 @@ function save(f::PDF, tp::TikzPicture)
     error("Error saving as PDF.")
   end
 end
+
+function save(f::PDF, td::TikzDocument)
+  if isempty(td.pictures)
+    error("TikzDocument does not contain pictures")
+  end
+  try
+    filename = f.filename
+    save(TEX(filename * ".tex"), td)
+    if td.pictures[1].enableWrite18
+      success(`lualatex --enable-write18 $filename`)
+    else
+      success(`lualatex $filename`)
+    end
+    if tikzDeleteIntermediate()
+      rm("$filename.tex")
+      rm("$filename.aux")
+      rm("$filename.log")
+    end
+  catch
+    error("Error saving as PDF.")
+  end
+end
+
 
 function save(f::SVG, tp::TikzPicture)
   try
