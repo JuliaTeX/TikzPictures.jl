@@ -2,6 +2,8 @@ module TikzPictures
 
 export TikzPicture, PDF, TEX, SVG, save, tikzDeleteIntermediate, TikzDocument, push!
 import Base: push!
+import LaTeXStrings: LaTeXString, @L_str, @L_mstr
+export LaTeXString, @L_str, @L_mstr
 
 _tikzDeleteIntermediate = true
 
@@ -15,8 +17,6 @@ function tikzDeleteIntermediate()
   global _tikzDeleteIntermediate
   _tikzDeleteIntermediate
 end
-
-include("latex.jl")
 
 type TikzPicture
   data::String
