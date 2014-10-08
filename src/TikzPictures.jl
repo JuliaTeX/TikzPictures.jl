@@ -112,21 +112,39 @@ function save(f::TEX, td::TikzDocument)
 end
 
 function save(f::PDF, tp::TikzPicture)
+  # Generate the .tex file and make pass along any possible errors
+  IX = rsearch(f.filename,'/')              # Find the last slash
+  foldername = f.filename[1:IX-1]           # Everything before that is the folder name
+  foldername = (IX == 0 ? "." : foldername) # If there was no slash, folder is "."
+  save(TEX(f.filename * ".tex"), tp)        # Save the tex file in the directory that was given
+                                            #   This will throw an error if the directory doesn't exist
+
+  # From the .tex file, generate a pdf within the specified folder
+  latexCommand = ``
+  if tp.enableWrite18
+    latexCommand = `lualatex --enable-write18 --output-directory=$(foldername) $(f.filename)`
+  else
+    latexCommand = `lualatex --output-directory=$(foldername) $(f.filename)`
+  end
+  isPdfThere = success(latexCommand)
+
+  if !isPdfThere
+    line1 = "ERROR: The pdf generation failed.\n"
+    line2 = "   Be sure your latex libraries are fully up to date!\n"
+    line3 = "   You tried: $(latexCommand)"
+    error(line1 * line2 * line3)  # Throw an error
+  end
+
   try
-    filename = f.filename
-    save(TEX(filename * ".tex"), tp)
-    if tp.enableWrite18
-      success(`lualatex --enable-write18 $filename`)
-    else
-      success(`lualatex $filename`)
-    end
+    # Shouldn't need to be try-catched anymore, but best to be safe
+    # This failing is NOT critical either, so just make it a warning
     if tikzDeleteIntermediate()
-      rm("$filename.tex")
-      rm("$filename.aux")
-      rm("$filename.log")
+      rm("$(f.filename).tex")
+      rm("$(f.filename).aux")
+      rm("$(f.filename).log")
     end
   catch
-    error("Error saving as PDF.")
+    println("WARNING! Your intermediate files are not being deleted.")
   end
 end
 
@@ -148,7 +166,8 @@ function save(f::PDF, td::TikzDocument)
       rm("$filename.log")
     end
   catch
-    error("Error saving as PDF.")
+    println("Error saving as PDF.")
+    rethrow()
   end
 end
 
@@ -178,7 +197,8 @@ function save(f::SVG, tp::TikzPicture)
       end
     end
   catch
-    error("Error saving as SVG")
+    println("Error saving as SVG")
+    rethrow()
   end
 end
 
