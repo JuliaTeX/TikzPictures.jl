@@ -203,7 +203,7 @@ function save(f::SVG, tp::TikzPicture)
 end
 
 # this is needed to work with multiple images in ijulia (kind of a hack)
-global _tikzid = uint(iround(time() * 10))
+global _tikzid = uint64(time() * 1e6)
 
 function Base.writemime(f::IO, ::MIME"image/svg+xml", tp::TikzPicture)
   global _tikzid
