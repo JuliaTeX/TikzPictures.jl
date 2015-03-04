@@ -160,10 +160,14 @@ function save(f::PDF, td::TikzDocument)
     else
       success(`lualatex $filename`)
     end
+
+    dir_name,base_name = splitdir(filename)
+    mv("$(base_name).pdf","$filename.pdf")
+
     if tikzDeleteIntermediate()
       rm("$filename.tex")
-      rm("$filename.aux")
-      rm("$filename.log")
+      rm("$(base_name).aux")
+      rm("$(base_name).log")
     end
   catch
     println("Error saving as PDF.")
