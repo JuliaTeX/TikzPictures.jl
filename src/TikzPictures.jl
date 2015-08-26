@@ -238,6 +238,7 @@ function Base.writemime(f::IO, ::MIME"image/svg+xml", tp::TikzPicture)
     s = replace(s, "#image", "#image-$(_tikzid)-")
     s = replace(s, "linearGradient id=\"linear", "linearGradient id=\"linear-$(_tikzid)-")
     s = replace(s, "#linear", "#linear-$(_tikzid)-")
+    s = replace(s, "image id=\"", "image style=\"image-rendering: pixelated;\" id=\"")
     _tikzid += 1
     println(f, s)
     if tikzDeleteIntermediate()
