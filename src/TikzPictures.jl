@@ -1,11 +1,12 @@
 module TikzPictures
 
-export TikzPicture, PDF, TEX, SVG, save, tikzDeleteIntermediate, TikzDocument, push!
+export TikzPicture, PDF, TEX, SVG, save, tikzDeleteIntermediate, tikzCommand, TikzDocument, push!
 import Base: push!
 import LaTeXStrings: LaTeXString, @L_str, @L_mstr
 export LaTeXString, @L_str, @L_mstr
 
 _tikzDeleteIntermediate = true
+_tikzCommand = "lualatex"
 
 function tikzDeleteIntermediate(value::Bool)
     global _tikzDeleteIntermediate
@@ -16,6 +17,17 @@ end
 function tikzDeleteIntermediate()
     global _tikzDeleteIntermediate
     _tikzDeleteIntermediate
+end
+
+function tikzCommand(value::ASCIIString)
+    global _tikzCommand
+    _tikzCommand = value
+    nothing
+end
+
+function tikzCommand()
+    global _tikzCommand
+    _tikzCommand
 end
 
 type TikzPicture
@@ -140,9 +152,9 @@ function save(f::PDF, tp::TikzPicture)
     # From the .tex file, generate a pdf within the specified folder
     latexCommand = ``
     if tp.enableWrite18
-        latexCommand = `lualatex --enable-write18 --output-directory=$(foldername) $(f.filename)`
+        latexCommand = `$(tikzCommand()) --enable-write18 --output-directory=$(foldername) $(f.filename)`
     else
-        latexCommand = `lualatex --output-directory=$(foldername) $(f.filename)`
+        latexCommand = `$(tikzCommand()) --output-directory=$(foldername) $(f.filename)`
     end
     latexSuccess = success(latexCommand)
 
@@ -173,9 +185,9 @@ function save(f::PDF, td::TikzDocument)
         filename = f.filename
         save(TEX(filename * ".tex"), td)
         if td.pictures[1].enableWrite18
-            success(`lualatex --enable-write18 $filename`)
+            success(`$(tikzCommand()) --enable-write18 $filename`)
         else
-            success(`lualatex $filename`)
+            success(`$(tikzCommand()) $filename`)
         end
 
         dir_name,base_name = splitdir(filename)
@@ -205,9 +217,9 @@ function save(f::SVG, tp::TikzPicture)
         else
             save(TEX("$filename.tex"), tp)
             if tp.enableWrite18
-                success(`lualatex --enable-write18 --output-format=dvi $filename`)
+                success(`$(tikzCommand()) --enable-write18 --output-format=dvi $filename`)
             else
-                success(`lualatex --output-format=dvi $filename`)
+                success(`$(tikzCommand()) --output-format=dvi $filename`)
             end
             success(`dvisvgm --no-fonts $filename`)
             if tikzDeleteIntermediate()
