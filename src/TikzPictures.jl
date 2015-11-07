@@ -31,12 +31,12 @@ function tikzCommand()
 end
 
 type TikzPicture
-    data::String
-    options::String
-    preamble::String
+    data::AbstractString
+    options::AbstractString
+    preamble::AbstractString
     usePDF2SVG::Bool
     enableWrite18::Bool
-    TikzPicture(data::String; options="", preamble="", usePDF2SVG=true, enableWrite18=true) = new(data, options, preamble, usePDF2SVG, enableWrite18)
+    TikzPicture(data::AbstractString; options="", preamble="", usePDF2SVG=true, enableWrite18=true) = new(data, options, preamble, usePDF2SVG, enableWrite18)
 end
 
 type TikzDocument
@@ -51,7 +51,7 @@ function push!(td::TikzDocument, tp::TikzPicture; caption="")
     push!(td.captions, caption)
 end
 
-function removeExtension(filename::String, extension::String)
+function removeExtension(filename::AbstractString, extension::AbstractString)
     if endswith(filename, extension) || endswith(filename, uppercase(extension))
         return filename[1:(end - length(extension))]
     else
@@ -60,18 +60,18 @@ function removeExtension(filename::String, extension::String)
 end
 
 type PDF
-    filename::String
-    PDF(filename::String) = new(removeExtension(filename, ".pdf"))
+    filename::AbstractString
+    PDF(filename::AbstractString) = new(removeExtension(filename, ".pdf"))
 end
 
 type TEX
-    filename::String
-    TEX(filename::String) = new(removeExtension(filename, ".tex"))
+    filename::AbstractString
+    TEX(filename::AbstractString) = new(removeExtension(filename, ".tex"))
 end
 
 type SVG
-    filename::String
-    SVG(filename::String) = new(removeExtension(filename, ".svg"))
+    filename::AbstractString
+    SVG(filename::AbstractString) = new(removeExtension(filename, ".svg"))
 end
 
 Base.mimewritable(::MIME"image/svg+xml", tp::TikzPicture) = true
@@ -236,7 +236,7 @@ function save(f::SVG, tp::TikzPicture)
 end
 
 # this is needed to work with multiple images in ijulia (kind of a hack)
-global _tikzid = round(Uint64, time() * 1e6)
+global _tikzid = round(UInt64, time() * 1e6)
 
 function Base.writemime(f::IO, ::MIME"image/svg+xml", tp::TikzPicture)
     global _tikzid
