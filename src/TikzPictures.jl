@@ -143,9 +143,7 @@ end
 
 function save(f::PDF, tp::TikzPicture)
     # Generate the .tex file and make pass along any possible errors
-    IX = rsearch(f.filename,'/')              # Find the last slash
-    foldername = f.filename[1:IX-1]           # Everything before that is the folder name
-    foldername = (IX == 0 ? "." : foldername) # If there was no slash, folder is "."
+    foldername = dirname(f.filename)
     save(TEX(f.filename * ".tex"), tp)        # Save the tex file in the directory that was given
     #   This will throw an error if the directory doesn't exist
 
