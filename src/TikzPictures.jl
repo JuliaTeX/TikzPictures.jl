@@ -144,6 +144,9 @@ end
 function save(f::PDF, tp::TikzPicture)
     # Generate the .tex file and make pass along any possible errors
     foldername = dirname(f.filename)
+    if isempty(foldername)
+        foldername = "."
+    end
     save(TEX(f.filename * ".tex"), tp)        # Save the tex file in the directory that was given
     #   This will throw an error if the directory doesn't exist
 
