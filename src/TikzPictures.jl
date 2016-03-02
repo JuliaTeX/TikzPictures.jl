@@ -179,25 +179,25 @@ function save(f::PDF, tp::TikzPicture)
 end
 
 function save(f::PDF, td::TikzDocument)
+    foldername = dirname(f.filename)
+    if isempty(foldername)
+      foldername = "."
+    end
     if isempty(td.pictures)
         error("TikzDocument does not contain pictures")
     end
     try
-        filename = f.filename
-        save(TEX(filename * ".tex"), td)
+        save(TEX(f.filename * ".tex"), td)
         if td.pictures[1].enableWrite18
-            success(`$(tikzCommand()) --enable-write18 $filename`)
+            success(`$(tikzCommand()) --enable-write18 --output-directory=$(foldername) $(f.filename)`)
         else
-            success(`$(tikzCommand()) $filename`)
+            success(`$(tikzCommand()) --output-directory=$(foldername) $(f.filename)`)
         end
 
-        dir_name,base_name = splitdir(filename)
-        mv("$(base_name).pdf","$filename.pdf")
-
         if tikzDeleteIntermediate()
-            rm("$filename.tex")
-            rm("$(base_name).aux")
-            rm("$(base_name).log")
+            rm("$(f.filename).tex")
+            rm("$(f.filename).aux")
+            rm("$(f.filename).log")
         end
     catch
         println("Error saving as PDF.")
