@@ -66,7 +66,8 @@ end
 
 type TEX
     filename::AbstractString
-    TEX(filename::AbstractString) = new(removeExtension(filename, ".tex"))
+    include_preamble::Bool
+    TEX(filename::AbstractString; include_preamble::Bool=true) = new(removeExtension(filename, ".tex"), include_preamble)
 end
 
 type SVG
@@ -79,15 +80,19 @@ Base.mimewritable(::MIME"image/svg+xml", tp::TikzPicture) = true
 function save(f::TEX, tp::TikzPicture)
     filename = f.filename
     tex = open("$(filename).tex", "w")
-    println(tex, "\\documentclass[tikz]{standalone}")
-    println(tex, tp.preamble)
-    println(tex, "\\begin{document}")
+    if f.include_preamble
+        println(tex, "\\documentclass[tikz]{standalone}")
+        println(tex, tp.preamble)
+        println(tex, "\\begin{document}")
+    end
     print(tex, "\\begin{tikzpicture}[")
     print(tex, tp.options)
     println(tex, "]")
     println(tex, tp.data)
     println(tex, "\\end{tikzpicture}")
-    println(tex, "\\end{document}")
+    if f.include_preamble
+        println(tex, "\\end{document}")
+    end
     close(tex)
 end
 
@@ -97,11 +102,13 @@ function save(f::TEX, td::TikzDocument)
     end
     filename = f.filename
     tex = open("$(filename).tex", "w")
-    println(tex, "\\documentclass{article}")
-    println(tex, "\\usepackage{caption}")
-    println(tex, "\\usepackage{tikz}")
-    println(tex, td.pictures[1].preamble)
-    println(tex, "\\begin{document}")
+    if f.include_preamble
+        println(tex, "\\documentclass{article}")
+        println(tex, "\\usepackage{caption}")
+        println(tex, "\\usepackage{tikz}")
+        println(tex, td.pictures[1].preamble)
+        println(tex, "\\begin{document}")
+    end
     println(tex, "\\centering")
     @assert length(td.pictures) == length(td.captions)
     i = 1
@@ -119,7 +126,9 @@ function save(f::TEX, td::TikzDocument)
         println(tex)
         i += 1
     end
-    println(tex, "\\end{document}")
+    if f.include_preamble
+        println(tex, "\\end{document}")
+    end
     close(tex)
 end
 
