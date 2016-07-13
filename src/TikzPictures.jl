@@ -81,6 +81,7 @@ function save(f::TEX, tp::TikzPicture)
     filename = f.filename
     tex = open("$(filename).tex", "w")
     if f.include_preamble
+        println(tex, "\\RequirePackage{luatex85}")
         println(tex, "\\documentclass[tikz]{standalone}")
         println(tex, tp.preamble)
         println(tex, "\\begin{document}")
@@ -190,7 +191,7 @@ end
 function save(f::PDF, td::TikzDocument)
     foldername = dirname(f.filename)
     if isempty(foldername)
-      foldername = "."
+        foldername = "."
     end
     if isempty(td.pictures)
         error("TikzDocument does not contain pictures")
