@@ -8,6 +8,21 @@ export LaTeXString, @L_str, @L_mstr
 _tikzDeleteIntermediate = true
 _tikzCommand = "lualatex"
 
+# standalone workaround:
+# see http://tex.stackexchange.com/questions/315025/lualatex-texlive-2016-standalone-undefined-control-sequence
+_standaloneWorkaround = false
+
+function standaloneWorkaround()
+    global _standaloneWorkaround
+    _standaloneWorkaround
+end
+
+function standaloneWorkaround(value::Bool)
+    global _standaloneWorkaround
+    _standaloneWorkaround = value
+    nothing
+end
+
 function tikzDeleteIntermediate(value::Bool)
     global _tikzDeleteIntermediate
     _tikzDeleteIntermediate = value
@@ -81,7 +96,9 @@ function save(f::TEX, tp::TikzPicture)
     filename = f.filename
     tex = open("$(filename).tex", "w")
     if f.include_preamble
-        println(tex, "\\RequirePackage{luatex85}")
+        if standaloneWorkaround()
+            println(tex, "\\RequirePackage{luatex85}")
+        end
         println(tex, "\\documentclass[tikz]{standalone}")
         println(tex, tp.preamble)
         println(tex, "\\begin{document}")
@@ -171,6 +188,11 @@ function save(f::PDF, tp::TikzPicture)
 
     if !latexSuccess
         s = readall("$(f.filename).log")
+        if !standaloneWorkaround()
+            standaloneWorkaround(true)
+            save(f, tp)
+            return
+        end
         latexerrormsg(s)
         error("LaTeX error")
     end
