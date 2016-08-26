@@ -5,6 +5,8 @@ import Base: push!
 import LaTeXStrings: LaTeXString, @L_str, @L_mstr
 export LaTeXString, @L_str, @L_mstr
 
+using Compat
+
 _tikzDeleteIntermediate = true
 _tikzCommand = "lualatex"
 
@@ -34,7 +36,7 @@ function tikzDeleteIntermediate()
     _tikzDeleteIntermediate
 end
 
-function tikzCommand(value::ASCIIString)
+function tikzCommand(value::AbstractString)
     global _tikzCommand
     _tikzCommand = value
     nothing
@@ -56,7 +58,7 @@ end
 
 type TikzDocument
     pictures::Vector{TikzPicture}
-    captions::Vector{ASCIIString}
+    captions::Vector{AbstractString}
 end
 
 TikzDocument() = TikzDocument(TikzPicture[], ASCIIString[])
@@ -187,7 +189,7 @@ function save(f::PDF, tp::TikzPicture)
     latexSuccess = success(latexCommand)
 
     if !latexSuccess
-        s = readall("$(f.filename).log")
+        s = readstring("$(f.filename).log")
         if !standaloneWorkaround()
             standaloneWorkaround(true)
             save(f, tp)
@@ -271,11 +273,11 @@ end
 # this is needed to work with multiple images in ijulia (kind of a hack)
 global _tikzid = round(UInt64, time() * 1e6)
 
-function Base.writemime(f::IO, ::MIME"image/svg+xml", tp::TikzPicture)
+@compat function Base.show(f::IO, ::MIME"image/svg+xml", tp::TikzPicture)
     global _tikzid
     filename = "tikzpicture"
     save(SVG(filename), tp)
-    s = readall("$filename.svg")
+    s = readstring("$filename.svg")
     s = replace(s, "glyph", "glyph-$(_tikzid)-")
     s = replace(s, "\"clip", "\"clip-$(_tikzid)-")
     s = replace(s, "#clip", "#clip-$(_tikzid)-")
