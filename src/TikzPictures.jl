@@ -190,7 +190,7 @@ function save(f::PDF, tp::TikzPicture)
 
     if !latexSuccess
         s = readstring("$(f.filename).log")
-        if !standaloneWorkaround()
+        if !standaloneWorkaround() && contains(s, "\\sa@placebox ->\\newpage \\global \\pdfpagewidth")
             standaloneWorkaround(true)
             save(f, tp)
             return
