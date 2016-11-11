@@ -6,6 +6,7 @@ import LaTeXStrings: LaTeXString, @L_str, @L_mstr
 export LaTeXString, @L_str, @L_mstr
 
 using Compat
+import Compat.ASCIIString
 
 _tikzDeleteIntermediate = true
 _tikzCommand = "lualatex"
