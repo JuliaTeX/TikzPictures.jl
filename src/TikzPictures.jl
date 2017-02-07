@@ -209,7 +209,7 @@ function save(f::PDF, tp::TikzPicture)
             rm("$(f.filename).log")
         end
     catch
-        println("WARNING! Your intermediate files are not being deleted.")
+        warn("TikzPictures: Your intermediate files are not being deleted.")
     end
 end
 
