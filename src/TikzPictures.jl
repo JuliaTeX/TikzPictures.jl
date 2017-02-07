@@ -188,16 +188,20 @@ function save(f::PDF, tp::TikzPicture)
         latexCommand = `$(tikzCommand()) --output-directory=$(foldername) $(f.filename)`
     end
     latexSuccess = success(latexCommand)
+    log = readstring("$(f.filename).log")
 
     if !latexSuccess
-        s = readstring("$(f.filename).log")
-        if !standaloneWorkaround() && contains(s, "\\sa@placebox ->\\newpage \\global \\pdfpagewidth")
+        if !standaloneWorkaround() && contains(log, "\\sa@placebox ->\\newpage \\global \\pdfpagewidth")
             standaloneWorkaround(true)
             save(f, tp)
             return
         end
-        latexerrormsg(s)
+        latexerrormsg(log)
         error("LaTeX error")
+    end
+
+    if contains(log, "LaTeX Warning: Label(s)")
+        success(latexCommand)
     end
 
     try
