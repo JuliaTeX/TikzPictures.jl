@@ -1,6 +1,6 @@
 module TikzPictures
 
-export TikzPicture, PDF, TEX, SVG, save, tikzDeleteIntermediate, tikzCommand, TikzDocument, push!
+export TikzPicture, PDF, TEX, TIKZ, SVG, save, tikzDeleteIntermediate, tikzCommand, TikzDocument, push!
 import Base: push!
 import LaTeXStrings: LaTeXString, @L_str, @L_mstr
 export LaTeXString, @L_str, @L_mstr
@@ -76,27 +76,38 @@ function removeExtension(filename::AbstractString, extension::AbstractString)
     end
 end
 
-type PDF
+abstract SaveType
+
+type PDF <: SaveType
     filename::AbstractString
     PDF(filename::AbstractString) = new(removeExtension(filename, ".pdf"))
 end
 
-type TEX
+type TEX <: SaveType
     filename::AbstractString
     include_preamble::Bool
     TEX(filename::AbstractString; include_preamble::Bool=true) = new(removeExtension(filename, ".tex"), include_preamble)
 end
 
-type SVG
+type TIKZ <: SaveType
+    filename::AbstractString
+    include_preamble::Bool
+    TIKZ(filename::AbstractString) = new(removeExtension(filename, ".tikz"), false)
+end
+
+type SVG <: SaveType
     filename::AbstractString
     SVG(filename::AbstractString) = new(removeExtension(filename, ".svg"))
 end
 
+extension(f::SaveType) = lowercase(split("$(typeof(f))",".")[end])
+
 Base.mimewritable(::MIME"image/svg+xml", tp::TikzPicture) = true
 
-function save(f::TEX, tp::TikzPicture)
+function save(f::Union{TEX,TIKZ}, tp::TikzPicture)
     filename = f.filename
-    tex = open("$(filename).tex", "w")
+    ext = extension(f)
+    tex = open("$(filename).$(ext)", "w")
     if f.include_preamble
         if standaloneWorkaround()
             println(tex, "\\RequirePackage{luatex85}")

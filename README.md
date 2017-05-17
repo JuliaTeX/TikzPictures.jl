@@ -21,6 +21,7 @@ tp = TikzPicture("\\draw (0,0) -- (10,10);\n\\draw (10,0) -- (0,10);\n\\node at 
 save(PDF("test"), tp)
 save(SVG("test"), tp)
 save(TEX("test"), tp)
+save(TIKZ("test"), tp)
 ```
 
 As you can see above, you have to escape backslashes and dollar signs in LaTeX. To simplify things, this package provides the LaTeXString type, which can be constructed via L"...." without escaping backslashes or dollar signs.
