@@ -77,7 +77,7 @@ function removeExtension(filename::AbstractString, extension::AbstractString)
     end
 end
 
-abstract SaveType
+abstract type SaveType end
 
 type PDF <: SaveType
     filename::AbstractString
