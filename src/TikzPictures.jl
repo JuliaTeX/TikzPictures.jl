@@ -286,7 +286,7 @@ end
 # this is needed to work with multiple images in ijulia (kind of a hack)
 global _tikzid = round(UInt64, time() * 1e6)
 
-@compat function Base.show(f::IO, ::MIME"image/svg+xml", tp::TikzPicture)
+function Base.writemime(f::IO, ::MIME"image/svg+xml", tp::TikzPicture)
     global _tikzid
     filename = "tikzpicture"
     save(SVG(filename), tp)
