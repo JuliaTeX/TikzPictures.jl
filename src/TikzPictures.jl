@@ -1,3 +1,5 @@
+__precompile__()
+
 module TikzPictures
 
 export TikzPicture, PDF, TEX, TIKZ, SVG, save, tikzDeleteIntermediate, tikzCommand, TikzDocument, push!
@@ -34,7 +36,7 @@ function tikzDeleteIntermediate()
     _tikzDeleteIntermediate
 end
 
-function tikzCommand(value::String)
+function tikzCommand(value::AbstractString)
     global _tikzCommand
     _tikzCommand = value
     nothing
@@ -46,17 +48,17 @@ function tikzCommand()
 end
 
 type TikzPicture
-    data::String
-    options::String
-    preamble::String
+    data::AbstractString
+    options::AbstractString
+    preamble::AbstractString
     usePDF2SVG::Bool
     enableWrite18::Bool
-    TikzPicture(data::String; options="", preamble="", usePDF2SVG=true, enableWrite18=true) = new(data, options, preamble, usePDF2SVG, enableWrite18)
+    TikzPicture(data::AbstractString; options="", preamble="", usePDF2SVG=true, enableWrite18=true) = new(data, options, preamble, usePDF2SVG, enableWrite18)
 end
 
 type TikzDocument
     pictures::Vector{TikzPicture}
-    captions::Vector{String}
+    captions::Vector{AbstractString}
 end
 
 TikzDocument() = TikzDocument(TikzPicture[], String[])
@@ -66,7 +68,7 @@ function push!(td::TikzDocument, tp::TikzPicture; caption="")
     push!(td.captions, caption)
 end
 
-function removeExtension(filename::String, extension::String)
+function removeExtension(filename::AbstractString, extension::AbstractString)
     if endswith(filename, extension) || endswith(filename, uppercase(extension))
         return filename[1:(end - length(extension))]
     else
@@ -77,25 +79,25 @@ end
 abstract type SaveType end
 
 type PDF <: SaveType
-    filename::String
-    PDF(filename::String) = new(removeExtension(filename, ".pdf"))
+    filename::AbstractString
+    PDF(filename::AbstractString) = new(removeExtension(filename, ".pdf"))
 end
 
 type TEX <: SaveType
-    filename::String
+    filename::AbstractString
     include_preamble::Bool
-    TEX(filename::String; include_preamble::Bool=true) = new(removeExtension(filename, ".tex"), include_preamble)
+    TEX(filename::AbstractString; include_preamble::Bool=true) = new(removeExtension(filename, ".tex"), include_preamble)
 end
 
 type TIKZ <: SaveType
-    filename::String
+    filename::AbstractString
     include_preamble::Bool
-    TIKZ(filename::String) = new(removeExtension(filename, ".tikz"), false)
+    TIKZ(filename::AbstractString) = new(removeExtension(filename, ".tikz"), false)
 end
 
 type SVG <: SaveType
-    filename::String
-    SVG(filename::String) = new(removeExtension(filename, ".svg"))
+    filename::AbstractString
+    SVG(filename::AbstractString) = new(removeExtension(filename, ".svg"))
 end
 
 extension(f::SaveType) = lowercase(split("$(typeof(f))",".")[end])
@@ -307,3 +309,5 @@ function Base.show(f::IO, ::MIME"image/svg+xml", tp::TikzPicture)
 end
 
 end # module
+
+
