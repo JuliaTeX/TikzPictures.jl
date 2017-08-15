@@ -47,7 +47,7 @@ function tikzCommand()
     _tikzCommand
 end
 
-type TikzPicture
+mutable struct TikzPicture
     data::AbstractString
     options::AbstractString
     preamble::AbstractString
@@ -56,7 +56,7 @@ type TikzPicture
     TikzPicture(data::AbstractString; options="", preamble="", usePDF2SVG=true, enableWrite18=true) = new(data, options, preamble, usePDF2SVG, enableWrite18)
 end
 
-type TikzDocument
+mutable struct TikzDocument
     pictures::Vector{TikzPicture}
     captions::Vector{AbstractString}
 end
@@ -78,24 +78,24 @@ end
 
 abstract type SaveType end
 
-type PDF <: SaveType
+mutable struct PDF <: SaveType
     filename::AbstractString
     PDF(filename::AbstractString) = new(removeExtension(filename, ".pdf"))
 end
 
-type TEX <: SaveType
+mutable struct TEX <: SaveType
     filename::AbstractString
     include_preamble::Bool
     TEX(filename::AbstractString; include_preamble::Bool=true) = new(removeExtension(filename, ".tex"), include_preamble)
 end
 
-type TIKZ <: SaveType
+mutable struct TIKZ <: SaveType
     filename::AbstractString
     include_preamble::Bool
     TIKZ(filename::AbstractString) = new(removeExtension(filename, ".tikz"), false)
 end
 
-type SVG <: SaveType
+mutable struct SVG <: SaveType
     filename::AbstractString
     SVG(filename::AbstractString) = new(removeExtension(filename, ".svg"))
 end
