@@ -198,7 +198,7 @@ function save(f::PDF, tp::TikzPicture)
         latexCommand = `$(tikzCommand()) --output-directory=$(foldername) $(f.filename)`
     end
     latexSuccess = success(latexCommand)
-    log = readstring("$(f.filename).log")
+    log = read(string(f.filename, ".log"), String)
 
     if !latexSuccess
         if !standaloneWorkaround() && contains(log, "\\sa@placebox ->\\newpage \\global \\pdfpagewidth")
@@ -210,7 +210,7 @@ function save(f::PDF, tp::TikzPicture)
         error("LaTeX error")
     end
 
-    if contains(log, "LaTeX Warning: Label(s)")
+    if occursin("LaTeX Warning: Label(s)", log)
         success(latexCommand)
     end
 
@@ -292,7 +292,7 @@ function Base.show(f::IO, ::MIME"image/svg+xml", tp::TikzPicture)
     global _tikzid
     filename = "tikzpicture"
     save(SVG(filename), tp)
-    s = readstring("$filename.svg")
+    s = read("$filename.svg", String)
     s = replace(s, "glyph", "glyph-$(_tikzid)-")
     s = replace(s, "\"clip", "\"clip-$(_tikzid)-")
     s = replace(s, "#clip", "#clip-$(_tikzid)-")
