@@ -240,20 +240,9 @@ function save(f::PDF, tp::TikzPicture)
 end
 
 function save(f::PDF, td::TikzDocument)
-    # PDF's are intermediate files for SVG's, so if this function 
-    # is being called inside the save(f::SVG, tp::TikzPicture) function,
-    # the f.filename string would have a temp directory path attached to it
-    # ex - tmp3208yfe/test
-    ind = findfirst(isequal('/'), f.filename)
-
-    if typeof(ind) == Int64
-        foldername = f.filename[1:ind-1]
-        f.filename = f.filename[ind + 1 : end]
-    else
-        foldername = dirname(f.filename)
-        if isempty(foldername)
-            foldername = "."
-        end
+    foldername = dirname(f.filename)
+    if isempty(foldername)
+        foldername = "."
     end
 
     # lualatex command (tikzCommand()) will only work if in the same directory as the .tex files
