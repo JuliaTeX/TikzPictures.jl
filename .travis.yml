@@ -2,7 +2,7 @@ language: julia
 sudo: required
 dist: trusty
 julia:
-  - 0.6
+  - 0.7
   - nightly
 notifications:
   email: false
