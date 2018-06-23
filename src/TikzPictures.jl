@@ -201,9 +201,9 @@ function save(f::PDF, tp::TikzPicture)
     # From the .tex file, generate a pdf within the specified folder
     latexCommand = ``
     if tp.enableWrite18
-        latexCommand = `$(tikzCommand()) --enable-write18 --output-directory=$(".") $(f.filename)`
+        latexCommand = `$(tikzCommand()) --enable-write18 --output-directory=. $(f.filename)`
     else
-        latexCommand = `$(tikzCommand()) --output-directory=$(".") $(f.filename)`
+        latexCommand = `$(tikzCommand()) --output-directory=. $(f.filename)`
     end
     latexSuccess = success(latexCommand)
 
@@ -254,9 +254,9 @@ function save(f::PDF, td::TikzDocument)
     try
         save(TEX(f.filename * ".tex"), td)
         if td.pictures[1].enableWrite18
-            success(`$(tikzCommand()) --enable-write18 --output-directory=$(".") $(f.filename)`)
+            success(`$(tikzCommand()) --enable-write18 --output-directory=. $(f.filename)`)
         else
-            success(`$(tikzCommand()) --output-directory=$(".") $(f.filename)`)
+            success(`$(tikzCommand()) --output-directory=. $(f.filename)`)
         end
 
         # switch back to original directory
@@ -291,9 +291,9 @@ function save(f::SVG, tp::TikzPicture)
         else
             save(TEX("$(filename).tex"), tp)
             if tp.enableWrite18
-                success(`$(tikzCommand()) --enable-write18 --output-format=dvi $(".")`)
+                success(`$(tikzCommand()) --enable-write18 --output-format=dvi .`)
             else
-                success(`$(tikzCommand()) --output-format=dvi $(".")`)
+                success(`$(tikzCommand()) --output-format=dvi .`)
             end
             success(`dvisvgm --no-fonts $(filename)`)
 
