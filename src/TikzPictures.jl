@@ -219,11 +219,11 @@ function save(f::PDF, tp::TikzPicture)
         # Shouldn't need to be try-catched anymore, but best to be safe
         # This failing is NOT critical either, so just make it a warning
         if tikzDeleteIntermediate()
-            target_file = foldername * "/" * "$(f.filename).pdf"
+            target_file = temp_dir * "/" * "$(f.filename).pdf"
             if isfile(target_file)
                 # Note: file may not exist if !latexSuccess
                 # Moves pdf out of temp directory
-                mv(temp_dir * "/" * "$(f.filename).pdf", target_file)
+                mv(target_file, foldername * "/" * "$(f.filename).pdf")
             end
             rm(temp_dir, recursive=true)
         end
@@ -251,9 +251,9 @@ function save(f::PDF, td::TikzDocument)
 
     # lualatex command (tikzCommand()) will only work if in the same directory as the .tex files
     # switching directories (temporarily) since the .tex files are in the tmp dir
-    tempdir = mktempdir(foldername)
-    pwd = abspath(".")
-    cd(abspath(tempdir))
+    temp_dir = mktempdir(foldername)
+    original_dir = abspath(".")
+    cd(abspath(temp_dir))
 
     try
         save(TEX(f.filename * ".tex"), td)
@@ -264,11 +264,11 @@ function save(f::PDF, td::TikzDocument)
         end
 
         # switch back to original directory
-        cd(pwd)
+        cd(original_dir)
         if tikzDeleteIntermediate()
             # Moves pdf out of temp directory and removes temp directory
-            mv(tempdir * "/" * "$(f.filename).pdf", foldername * "/" * "$(f.filename).pdf")
-            rm(tempdir, recursive=true)
+            mv(temp_dir * "/" * "$(f.filename).pdf", foldername * "/" * "$(f.filename).pdf")
+            rm(temp_dir, recursive=true)
         end
     catch
         @warn "Error saving as PDF."
@@ -281,16 +281,16 @@ function save(f::SVG, tp::TikzPicture)
     try
         filename = f.filename
         folder = abspath(".")
-        tempdir = mktempdir(folder)
-        pwd = abspath(".")
-        cd(abspath(tempdir))
+        temp_dir = mktempdir(folder)
+        original_dir = abspath(".")
+        cd(abspath(temp_dir))
         if tp.usePDF2SVG
             save(PDF(filename), tp)
-            cd(pwd)
-            success(`pdf2svg $(tempdir * "/" * filename).pdf $filename.svg`) || error("pdf2svg failure")
+            cd(original_dir)
+            success(`pdf2svg $(temp_dir * "/" * filename).pdf $filename.svg`) || error("pdf2svg failure")
             if tikzDeleteIntermediate()
                 # delete tmp dir
-                rm(tempdir, recursive=true)
+                rm(temp_dir, recursive=true)
             end
         else
             save(TEX("$(filename).tex"), tp)
@@ -301,13 +301,13 @@ function save(f::SVG, tp::TikzPicture)
             end
             success(`dvisvgm --no-fonts $(filename)`)
 
-            # switch back to current dir
-            cd(pwd)
+            # switch back to original dir
+            cd(original_dir)
 
             if tikzDeleteIntermediate()
                 # move svg from tmp to current dir and delete tmp dir
-                mv(tempdir * "/" * "$(filename).svg", foldername * "/" * "$(filename).svg")
-                rm(tempdir, recursive=true)
+                mv(temp_dir * "/" * "$(filename).svg", foldername * "/" * "$(filename).svg")
+                rm(temp_dir, recursive=true)
             end
         end
     catch
