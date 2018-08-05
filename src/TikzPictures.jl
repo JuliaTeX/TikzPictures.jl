@@ -189,14 +189,13 @@ function save(f::PDF, tp::TikzPicture)
 
     # latex command will only work if in the same directory as the .tex files
     # switching directories (temporarily) since the .tex files are in the tmp dir
-    tempdir = mktempdir(foldername)
-    pwd = abspath(".")
-    cd(abspath(tempdir))
+    temp_dir = mktempdir(foldername)
+    original_dir = abspath(".")
+    cd(abspath(temp_dir))
 
-    # Generate the .tex file and make pass along any possible errors
-    save(TEX(f.filename * ".tex"), tp)        # Save the tex file in the directory that was given
-
-    #   This will throw an error if the directory doesn't exist
+    # Generate the .tex file and pass along any possible errors
+    # This will throw an error if the directory doesn't exist
+    save(TEX(f.filename * ".tex"), tp) # Save the tex file in the directory that was given
 
     # From the .tex file, generate a pdf within the specified folder
     latexCommand = ``
@@ -208,21 +207,11 @@ function save(f::PDF, tp::TikzPicture)
     latexSuccess = success(latexCommand)
 
     # switch back to original directory
-    cd(pwd)
+    cd(original_dir)
 
-    log = read(tempdir * "/" * f.filename * ".log", String)
+    tex_log = read(temp_dir * "/" * f.filename * ".log", String)
 
-    if !latexSuccess
-        if !standaloneWorkaround() && occursin("\\sa@placebox ->\\newpage \\global \\pdfpagewidth", log)
-            standaloneWorkaround(true)
-            save(f, tp)
-            return
-        end
-        latexerrormsg(log)
-        error("LaTeX error")
-    end
-
-    if occursin("LaTeX Warning: Label(s)", log)
+    if occursin("LaTeX Warning: Label(s)", tex_log)
         success(latexCommand)
     end
 
@@ -230,12 +219,27 @@ function save(f::PDF, tp::TikzPicture)
         # Shouldn't need to be try-catched anymore, but best to be safe
         # This failing is NOT critical either, so just make it a warning
         if tikzDeleteIntermediate()
-            # Moves pdf out of temp directory and removes temp directory
-            mv(tempdir * "/" * "$(f.filename).pdf", foldername * "/" * "$(f.filename).pdf")
-            rm(tempdir, recursive=true)
+            target_file = foldername * "/" * "$(f.filename).pdf"
+            if isfile(target_file)
+                # Note: file may not exist if !latexSuccess
+                # Moves pdf out of temp directory
+                mv(temp_dir * "/" * "$(f.filename).pdf", target_file)
+            end
+            rm(temp_dir, recursive=true)
         end
     catch
         @warn "TikzPictures: Your intermediate files are not being deleted."
+    end
+
+    if !latexSuccess
+        # Remove failed attempt.
+        if !standaloneWorkaround() && occursin("\\sa@placebox ->\\newpage \\global \\pdfpagewidth", tex_log)
+            standaloneWorkaround(true)
+            save(f, tp)
+            return
+        end
+        latexerrormsg(log)
+        error("LaTeX error")
     end
 end
 
@@ -267,7 +271,7 @@ function save(f::PDF, td::TikzDocument)
             rm(tempdir, recursive=true)
         end
     catch
-        println("Error saving as PDF.")
+        @warn "Error saving as PDF."
         rethrow()
     end
 end
@@ -307,7 +311,7 @@ function save(f::SVG, tp::TikzPicture)
             end
         end
     catch
-        println("Error saving as SVG")
+        @warn "Error saving as SVG"
         rethrow()
     end
 end
