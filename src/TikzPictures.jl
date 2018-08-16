@@ -102,7 +102,7 @@ end
 
 extension(f::SaveType) = lowercase(split("$(typeof(f))",".")[end])
 
-Base.mimewritable(::MIME"image/svg+xml", tp::TikzPicture) = true
+showable(::MIME"image/svg+xml", tp::TikzPicture) = true
 
 function save(f::Union{TEX,TIKZ}, tp::TikzPicture)
     filename = f.filename
