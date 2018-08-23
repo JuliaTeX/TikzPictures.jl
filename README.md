@@ -1,7 +1,7 @@
 # TikzPictures
 
-[![Build Status](https://travis-ci.org/sisl/TikzPictures.jl.svg)](https://travis-ci.org/sisl/TikzPictures.jl)
-[![Coverage Status](https://coveralls.io/repos/github/sisl/TikzPictures.jl/badge.svg?branch=master)](https://coveralls.io/github/sisl/TikzPictures.jl?branch=master)
+[![Build Status](https://travis-ci.org/JuliaTeX/TikzPictures.jl.svg)](https://travis-ci.org/JuliaTeX/TikzPictures.jl)
+[![Coverage Status](https://coveralls.io/repos/github/JuliaTeX/TikzPictures.jl/badge.svg?branch=master)](https://coveralls.io/github/JuliaTeX/TikzPictures.jl?branch=master)
 
 
 
