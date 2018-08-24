@@ -1,5 +1,3 @@
-__precompile__()
-
 module TikzPictures
 
 export TikzPicture, PDF, TEX, TIKZ, SVG, save, tikzDeleteIntermediate, tikzCommand, TikzDocument, push!
