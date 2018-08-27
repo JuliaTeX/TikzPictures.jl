@@ -236,7 +236,7 @@ function save(f::PDF, tp::TikzPicture)
             save(f, tp)
             return
         end
-        latexerrormsg(log)
+        latexerrormsg(tex_log)
         error("LaTeX error")
     end
 end
