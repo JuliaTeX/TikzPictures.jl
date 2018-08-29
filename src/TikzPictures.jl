@@ -203,9 +203,6 @@ function save(f::PDF, tp::TikzPicture)
     end
     latexSuccess = success(latexCommand)
 
-    # switch back to original directory
-    # cd(original_dir)
-
     tex_log = read(f.filename * ".log", String)
 
     if occursin("LaTeX Warning: Label(s)", tex_log)
@@ -235,6 +232,7 @@ function save(f::PDF, tp::TikzPicture)
         error("LaTeX error")
     end
 
+    # Switch back to original directory
     cd(original_dir)
 end
 
@@ -259,8 +257,6 @@ function save(f::PDF, td::TikzDocument)
             success(`$(tikzCommand()) --output-directory=. $(f.filename)`)
         end
 
-        # switch back to original directory
-        cd(original_dir)
         if tikzDeleteIntermediate()
             rm("$(filename).tex")
             rm("$(filename).aux")
@@ -270,6 +266,9 @@ function save(f::PDF, td::TikzDocument)
         @warn "Error saving as PDF."
         rethrow()
     end
+
+    # switch back to original directory
+    cd(original_dir)
 end
 
 
@@ -312,7 +311,7 @@ end
 # this is needed to work with multiple images in ijulia (kind of a hack)
 global _tikzid = round(UInt64, time() * 1e6)
 
-# Shushman: Can we assume Base.show will always be with current working directory?
+
 function Base.show(f::IO, ::MIME"image/svg+xml", tp::TikzPicture)
     global _tikzid
     filename = "tikzpicture"
