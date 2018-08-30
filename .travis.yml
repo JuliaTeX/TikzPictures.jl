@@ -14,4 +14,5 @@ before_install:
   - sudo apt-get install -y texlive-pictures
   - sudo apt-get install -y texlive-latex-extra
 after_success:
-  - julia -e 'cd(Pkg.dir("TikzPictures")); Pkg.add("Coverage"); using Coverage; Coveralls.submit(Coveralls.process_folder())'
+  - julia -e 'using Pkg; cd(Pkg.dir("TikzPictures")); Pkg.add("Coverage"); using Coverage; Coveralls.submit(Coveralls.process_folder())'
+
