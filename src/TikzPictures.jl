@@ -359,24 +359,36 @@ function save(f::SVG, tp::TikzPicture)
             success(latexCommand)
         end
 
+        if !latexSuccess
+        # Remove failed attempt.
+            if !standaloneWorkaround() && occursin("\\sa@placebox ->\\newpage \\global \\pdfpagewidth", tex_log)
+                standaloneWorkaround(true)
+                save(f, tp)
+                return
+            end
+            latexerrormsg(tex_log)
+            error("LaTeX error")
+        end
+
         # Convert PDF file in tmpdir to SVG file in tmpdir
         success(`pdf2svg $(temp_filename).pdf $(temp_filename).svg`) || error("pdf2svg failure")
+
     else
+        luaSucc = false
         if tp.enableWrite18
-            success(`$(tikzCommand()) --enable-write18 --output-format=dvi --output-directory=$(temp_dir) $(temp_filename*".tex")`)
+            luaSucc = success(`$(tikzCommand()) --enable-write18 --output-format=dvi --output-directory=$(temp_dir) $(temp_filename*".tex")`)
         else
-            success(`$(tikzCommand()) --output-format=dvi --output-directory=$(temp_dir) $(temp_filename*".tex")`)
+            luaSucc = success(`$(tikzCommand()) --output-format=dvi --output-directory=$(temp_dir) $(temp_filename*".tex")`)
         end
-        success(`dvisvgm --no-fonts $(temp_filename*".dvi")`)
-        
+        dviSuccess = success(`dvisvgm --no-fonts $(temp_filename*".dvi")`)
+
         # Commands fail silently so check if SVG exists and throw error with warning if not
-        if !isfile("$(temp_filename).svg")
-            @warn "Direct output to SVG failed! Please consider using PDF2SVG"
+        if !luaSucc || !dviSuccess
             if tikzDeleteIntermediate()
                 # Delete tmp dir
                 rm(temp_dir, recursive=true)
             end
-            throw(InterruptException())
+            error("Direct output to SVG failed! Please consider using PDF2SVG")
         end
     end
 
