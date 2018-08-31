@@ -7,6 +7,8 @@ export LaTeXString, @L_str, @L_mstr
 
 _tikzDeleteIntermediate = true
 _tikzCommand = "lualatex"
+_tikzUsePDF2SVG = true
+
 
 # standalone workaround:
 # see http://tex.stackexchange.com/questions/315025/lualatex-texlive-2016-standalone-undefined-control-sequence
@@ -45,13 +47,23 @@ function tikzCommand()
     _tikzCommand
 end
 
+function tikzUsePDF2SVG(value::Bool)
+    global _tikzUsePDF2SVG
+    _tikzUsePDF2SVG = value
+    nothing
+end
+
+function tikzUsePDF2SVG()
+    global _tikzUsePDF2SVG
+    _tikzUsePDF2SVG
+end
+
 mutable struct TikzPicture
     data::AbstractString
     options::AbstractString
     preamble::AbstractString
-    usePDF2SVG::Bool
     enableWrite18::Bool
-    TikzPicture(data::AbstractString; options="", preamble="", usePDF2SVG=true, enableWrite18=true) = new(data, options, preamble, usePDF2SVG, enableWrite18)
+    TikzPicture(data::AbstractString; options="", preamble="", enableWrite18=true) = new(data, options, preamble, enableWrite18)
 end
 
 mutable struct TikzDocument
@@ -223,9 +235,9 @@ function save(f::PDF, tp::TikzPicture)
     # Move PDF out of tmpdir regardless
     # Give warning if PDF file already exists
     if isfile("$(basefilename).pdf")
-        @warn string(working_dir,"$(basefilename).pdf already exists, overwriting!")
+        @warn "$(f.filename).pdf already exists, overwriting!"
     end
-    mv("$(temp_filename).pdf", string(working_dir,"$(basefilename).pdf"),force=true)
+    mv("$(temp_filename).pdf", "$(basefilename).pdf",force=true)
 
     try
         # Shouldn't need to be try-catched anymore, but best to be safe
@@ -283,9 +295,9 @@ function save(f::PDF, td::TikzDocument)
 
         # Move PDF out of tmpdir regardless
         if isfile("$(basefilename).pdf")
-            @warn string(working_dir,"$(basefilename).pdf already exists, overwriting!")
+            @warn "$(f.filename).pdf already exists, overwriting!"
         end
-        mv("$(temp_filename).pdf", string(working_dir,"$(basefilename).pdf"),force=true)
+        mv("$(temp_filename).pdf", "$(basefilename).pdf",force=true)
 
         try
             # Shouldn't need to be try-catched anymore, but best to be safe
@@ -309,7 +321,6 @@ end
 
 function save(f::SVG, tp::TikzPicture)
 
-    # Should not call underlying functions
     basefilename = basename(f.filename)
     foldername = dirname(f.filename)
     if isempty(foldername)
@@ -329,57 +340,65 @@ function save(f::SVG, tp::TikzPicture)
     # Save the TEX file in tmp dir
     save(TEX(temp_filename * ".tex"), tp)
 
-    try
-        if tp.usePDF2SVG
-            
-            # Convert to PDF and then to SVG
-            latexCommand = ``
-            if tp.enableWrite18
-                latexCommand = `$(tikzCommand()) --enable-write18 --output-directory=$(temp_dir) $(temp_filename*".tex")`
-            else
-                latexCommand = `$(tikzCommand()) --output-directory=$(temp_dir) $(temp_filename*".tex")`
-            end
-           
-            latexSuccess = success(latexCommand)
-
-            tex_log = read(temp_filename * ".log", String)
-
-            if occursin("LaTeX Warning: Label(s)", tex_log)
-                success(latexCommand)
-            end
-
-            # Convert PDF file in tmpdir to SVG file in tmpdir
-            success(`pdf2svg $(temp_filename).pdf $(temp_filename).svg`) || error("pdf2svg failure")
+    
+    if tikzUsePDF2SVG()
+        
+        # Convert to PDF and then to SVG
+        latexCommand = ``
+        if tp.enableWrite18
+            latexCommand = `$(tikzCommand()) --enable-write18 --output-directory=$(temp_dir) $(temp_filename*".tex")`
         else
-            if tp.enableWrite18
-                success(`$(tikzCommand()) --enable-write18 --output-format=dvi --output-directory=$(temp_dir) $(temp_filename*".tex")`)
-            else
-                success(`$(tikzCommand()) --output-format=dvi --output-directory=$(temp_dir) $(temp_filename*".tex")`)
-            end
-            success(`dvisvgm --no-fonts $(temp_filename*".dvi")`)
+            latexCommand = `$(tikzCommand()) --output-directory=$(temp_dir) $(temp_filename*".tex")`
+        end
+       
+        latexSuccess = success(latexCommand)
+
+        tex_log = read(temp_filename * ".log", String)
+
+        if occursin("LaTeX Warning: Label(s)", tex_log)
+            success(latexCommand)
         end
 
-        # Move SVG out of tmpdir into working dir and give warning if overwriting
-        if isfile("$(basefilename).svg")
-            @warn string(working_dir,"$(basefilename).svg already exists, overwriting!")
+        # Convert PDF file in tmpdir to SVG file in tmpdir
+        success(`pdf2svg $(temp_filename).pdf $(temp_filename).svg`) || error("pdf2svg failure")
+    else
+        if tp.enableWrite18
+            success(`$(tikzCommand()) --enable-write18 --output-format=dvi --output-directory=$(temp_dir) $(temp_filename*".tex")`)
+        else
+            success(`$(tikzCommand()) --output-format=dvi --output-directory=$(temp_dir) $(temp_filename*".tex")`)
         end
-        mv("$(temp_filename).svg", string(working_dir,"$(basefilename).svg"),force=true)
-
-        try
-            # Shouldn't need to be try-catched anymore, but best to be safe
-            # This failing is NOT critical either, so just make it a warning
+        success(`dvisvgm --no-fonts $(temp_filename*".dvi")`)
+        
+        # Commands fail silently so check if SVG exists and throw error with warning if not
+        if !isfile("$(temp_filename).svg")
+            @warn "Direct output to SVG failed! Please consider using PDF2SVG"
             if tikzDeleteIntermediate()
                 # Delete tmp dir
                 rm(temp_dir, recursive=true)
             end
-        catch
-            @warn "TikzPictures: Your intermediate files are not being deleted."
+            throw(InterruptException())
         end
-    catch
-        @warn "Error saving as SVG"
-        rethrow()
     end
 
+    # Move SVG out of tmpdir into working dir and give warning if overwriting
+    if isfile("$(basefilename).svg")
+        @warn "$(f.filename).svg already exists, overwriting!"
+    end
+    mv("$(temp_filename).svg", string(working_dir,"$(basefilename).svg"),force=true)
+
+    try
+        # Shouldn't need to be try-catched anymore, but best to be safe
+        # This failing is NOT critical either, so just make it a warning
+        if tikzDeleteIntermediate()
+            # Delete tmp dir
+            rm(temp_dir, recursive=true)
+        end
+    catch
+        @warn "TikzPictures: Your intermediate files are not being deleted."
+    end
+    
+    # Switch back to original directory
+    cd(original_dir)
 
 end
 
