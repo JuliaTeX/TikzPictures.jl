@@ -191,6 +191,17 @@ function latexerrormsg(s)
     end
 end
 
+function _mktempdir(foldername)
+    temp_dir = mktempdir(foldername)
+    if Sys.iswindows()
+        # this seems to be needed for Windows
+        mod_temp_dir = replace(temp_dir, r"(_|\.|\\)" => "")
+        mv(temp_dir, mod_temp_dir)
+        temp_dir = mod_temp_dir
+    end
+    return temp_dir
+end
+
 function save(f::PDF, tp::TikzPicture)
 
     # Isolate basename and foldername of file
@@ -209,15 +220,8 @@ function save(f::PDF, tp::TikzPicture)
     cd(working_dir)
 
     # Create tmp dir in working directory
-    temp_dir = mktempdir(foldername)
-    if Sys.iswindows()
-        # this seems to be needed for Windows
-        mod_temp_dir = replace(temp_dir, r"(_|\.|\\)" => "")
-        mv(temp_dir, mod_temp_dir)
-        temp_dir = mod_temp_dir
-    end
+    temp_dir = _mktempdir(foldername)
     temp_filename = string(temp_dir,"/",basefilename)
-
 
     # Save the TEX file in tmp dir
     save(TEX(temp_filename * ".tex"), tp)
@@ -295,7 +299,7 @@ function save(f::PDF, td::TikzDocument)
     cd(working_dir)
 
     # Create tmp dir in working directory
-    temp_dir = mktempdir(foldername)
+    temp_dir = _mktempdir(foldername)
     temp_filename = string(temp_dir,"/",basefilename)
 
     try
@@ -347,7 +351,7 @@ function save(f::SVG, tp::TikzPicture)
     cd(working_dir)
 
     # Create tmp dir in working directory
-    temp_dir = mktempdir(foldername)
+    temp_dir = _mktempdir(foldername)
     temp_filename = string(temp_dir,"/",basefilename)
 
     # Save the TEX file in tmp dir
