@@ -205,7 +205,7 @@ end
 
 function savePDFTPHelper(basefilename::AbstractString, foldername::AbstractString, tp::TikzPicture)
 
-    temp_dir = mktempdir(foldername)
+    temp_dir = _mktempdir(foldername)
     temp_filename = string(temp_dir,"/",basefilename)
 
     # Save the TEX file in tmp dir
