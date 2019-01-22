@@ -191,27 +191,10 @@ function latexerrormsg(s)
     end
 end
 
-function save(f::PDF, tp::TikzPicture)
+function savePDFTPHelper(basefilename::AbstractString, foldername::AbstractString, tp::TikzPicture)
 
-    # Isolate basename and foldername of file
-    basefilename = basename(f.filename)
-    foldername = dirname(f.filename)
-
-    # If current directory desired
-    if isempty(foldername)
-        foldername = "."
-    end
-
-    original_dir = abspath(".")
-    working_dir = abspath(foldername) # May be equal to original_dir
-
-    # Switch to working directory
-    cd(working_dir)
-
-    # Create tmp dir in working directory 
     temp_dir = mktempdir(foldername)
     temp_filename = string(temp_dir,"/",basefilename)
-
 
     # Save the TEX file in tmp dir
     save(TEX(temp_filename * ".tex"), tp)
@@ -223,7 +206,7 @@ function save(f::PDF, tp::TikzPicture)
     else
         latexCommand = `$(tikzCommand()) --output-directory=$(temp_dir) $(temp_filename*".tex")`
     end
-   
+
     latexSuccess = success(latexCommand)
 
     tex_log = read(temp_filename * ".log", String)
@@ -235,7 +218,7 @@ function save(f::PDF, tp::TikzPicture)
     # Move PDF out of tmpdir regardless
     # Give warning if PDF file already exists
     if isfile("$(basefilename).pdf")
-        @warn "$(f.filename).pdf already exists, overwriting!"
+        @warn "$(basefilename).pdf already exists, overwriting!"
     end
     mv("$(temp_filename).pdf", "$(basefilename).pdf",force=true)
 
@@ -260,12 +243,11 @@ function save(f::PDF, tp::TikzPicture)
         latexerrormsg(tex_log)
         error("LaTeX error")
     end
-
-    # Switch back to original directory
-    cd(original_dir)
 end
 
-function save(f::PDF, td::TikzDocument)
+
+function save(f::PDF, tp::TikzPicture)
+
     # Isolate basename and foldername of file
     basefilename = basename(f.filename)
     foldername = dirname(f.filename)
@@ -278,8 +260,12 @@ function save(f::PDF, td::TikzDocument)
     original_dir = abspath(".")
     working_dir = abspath(foldername) # May be equal to original_dir
 
-    # Switch to working directory
-    cd(working_dir)
+    # Call anonymous function to do task and automatically return
+    cd(() -> savePDFTPHelper(basefilename,foldername,tp), working_dir)
+end
+
+
+function savePDFTDHelper(basefilename::AbstractString, foldername::AbstractString, td::TikzDocument)
 
     # Create tmp dir in working directory 
     temp_dir = mktempdir(foldername)
@@ -295,7 +281,7 @@ function save(f::PDF, td::TikzDocument)
 
         # Move PDF out of tmpdir regardless
         if isfile("$(basefilename).pdf")
-            @warn "$(f.filename).pdf already exists, overwriting!"
+            @warn "$(basefilename).pdf already exists, overwriting!"
         end
         mv("$(temp_filename).pdf", "$(basefilename).pdf",force=true)
 
@@ -313,16 +299,15 @@ function save(f::PDF, td::TikzDocument)
         @warn "Error saving as PDF."
         rethrow()
     end
-
-    # switch back to original directory
-    cd(original_dir)
 end
 
 
-function save(f::SVG, tp::TikzPicture)
-
+function save(f::PDF, td::TikzDocument)
+    # Isolate basename and foldername of file
     basefilename = basename(f.filename)
     foldername = dirname(f.filename)
+
+    # If current directory desired
     if isempty(foldername)
         foldername = "."
     end
@@ -330,8 +315,12 @@ function save(f::SVG, tp::TikzPicture)
     original_dir = abspath(".")
     working_dir = abspath(foldername) # May be equal to original_dir
 
-    # Switch to working directory
-    cd(working_dir)
+    # Call anonymous function to do task and automatically return
+    cd(() -> savePDFTDHelper(basefilename,foldername,td), working_dir)
+end
+
+
+function saveSVGTPHelper(basefilename::AbstractString, foldername::AbstractString, tp::TikzPicture, working_dir::AbstractString)
 
     # Create tmp dir in working directory 
     temp_dir = mktempdir(foldername)
@@ -394,7 +383,7 @@ function save(f::SVG, tp::TikzPicture)
 
     # Move SVG out of tmpdir into working dir and give warning if overwriting
     if isfile("$(basefilename).svg")
-        @warn "$(f.filename).svg already exists, overwriting!"
+        @warn "$(basefilename).svg already exists, overwriting!"
     end
     mv("$(temp_filename).svg", string(working_dir,"$(basefilename).svg"),force=true)
 
@@ -408,9 +397,22 @@ function save(f::SVG, tp::TikzPicture)
     catch
         @warn "TikzPictures: Your intermediate files are not being deleted."
     end
-    
-    # Switch back to original directory
-    cd(original_dir)
+end
+
+
+function save(f::SVG, tp::TikzPicture)
+
+    basefilename = basename(f.filename)
+    foldername = dirname(f.filename)
+    if isempty(foldername)
+        foldername = "."
+    end
+
+    original_dir = abspath(".")
+    working_dir = abspath(foldername) # May be equal to original_dir
+
+    # Call anonymous function to do task and automatically return
+    cd(() -> saveSVGTPHelper(basefilename,foldername,tp,working_dir), working_dir)
 
 end
 
