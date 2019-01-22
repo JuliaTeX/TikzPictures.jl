@@ -191,6 +191,18 @@ function latexerrormsg(s)
     end
 end
 
+function _mktempdir(foldername)
+    temp_dir = mktempdir(foldername)
+    if Sys.iswindows()
+        # this seems to be needed for Windows
+        mod_temp_dir = replace(temp_dir, r"(_|\.|\\)" => "")
+        mv(temp_dir, mod_temp_dir)
+        temp_dir = mod_temp_dir
+    end
+    return temp_dir
+end
+
+
 function savePDFTPHelper(basefilename::AbstractString, foldername::AbstractString, tp::TikzPicture)
 
     temp_dir = mktempdir(foldername)
@@ -209,10 +221,15 @@ function savePDFTPHelper(basefilename::AbstractString, foldername::AbstractStrin
 
     latexSuccess = success(latexCommand)
 
-    tex_log = read(temp_filename * ".log", String)
+    tex_log = ""
+    try
+        tex_log = read(temp_filename * ".log", String)
+    catch
+        tex_log = read(temp_dir * "/texput.log", String)
+    end
 
     if occursin("LaTeX Warning: Label(s)", tex_log)
-        success(latexCommand)
+        latexSuccess = success(latexCommand)
     end
 
     # Move PDF out of tmpdir regardless
@@ -220,7 +237,9 @@ function savePDFTPHelper(basefilename::AbstractString, foldername::AbstractStrin
     if isfile("$(basefilename).pdf")
         @warn "$(basefilename).pdf already exists, overwriting!"
     end
-    mv("$(temp_filename).pdf", "$(basefilename).pdf",force=true)
+    if latexSuccess
+        mv("$(temp_filename).pdf", "$(basefilename).pdf",force=true)
+    end
 
     try
         # Shouldn't need to be try-catched anymore, but best to be safe
@@ -267,8 +286,8 @@ end
 
 function savePDFTDHelper(basefilename::AbstractString, foldername::AbstractString, td::TikzDocument)
 
-    # Create tmp dir in working directory 
-    temp_dir = mktempdir(foldername)
+    # Create tmp dir in working directory
+    temp_dir = _mktempdir(foldername)
     temp_filename = string(temp_dir,"/",basefilename)
 
     try
@@ -322,16 +341,16 @@ end
 
 function saveSVGTPHelper(basefilename::AbstractString, foldername::AbstractString, tp::TikzPicture, working_dir::AbstractString)
 
-    # Create tmp dir in working directory 
-    temp_dir = mktempdir(foldername)
+    # Create tmp dir in working directory
+    temp_dir = _mktempdir(foldername)
     temp_filename = string(temp_dir,"/",basefilename)
 
     # Save the TEX file in tmp dir
     save(TEX(temp_filename * ".tex"), tp)
 
-    
+
     if tikzUsePDF2SVG()
-        
+
         # Convert to PDF and then to SVG
         latexCommand = ``
         if tp.enableWrite18
@@ -339,7 +358,7 @@ function saveSVGTPHelper(basefilename::AbstractString, foldername::AbstractStrin
         else
             latexCommand = `$(tikzCommand()) --output-directory=$(temp_dir) $(temp_filename*".tex")`
         end
-       
+
         latexSuccess = success(latexCommand)
 
         tex_log = read(temp_filename * ".log", String)
@@ -413,7 +432,6 @@ function save(f::SVG, tp::TikzPicture)
 
     # Call anonymous function to do task and automatically return
     cd(() -> saveSVGTPHelper(basefilename,foldername,tp,working_dir), working_dir)
-
 end
 
 # this is needed to work with multiple images in ijulia (kind of a hack)
