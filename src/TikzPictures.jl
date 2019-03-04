@@ -207,19 +207,12 @@ function save(f::PDF, tp::TikzPicture)
 
     # Isolate basename and foldername of file
     basefilename = basename(f.filename)
-    foldername = dirname(f.filename)
-
-    # If current directory desired
-    if isempty(foldername)
-        foldername = "."
-    end
-
-    working_dir = abspath(foldername) # May be equal to original_dir
+    working_dir = dirname(abspath(f.filename))
 
     # Call anonymous function to do task and automatically return
     cd(working_dir) do
-        temp_dir = _mktempdir(foldername)
-        temp_filename = string(temp_dir,"/",basefilename)
+        temp_dir = _mktempdir("./")
+        temp_filename = joinpath(temp_dir,basefilename)
 
         # Save the TEX file in tmp dir
         save(TEX(temp_filename * ".tex"), tp)
@@ -238,7 +231,7 @@ function save(f::PDF, tp::TikzPicture)
         try
             tex_log = read(temp_filename * ".log", String)
         catch
-            tex_log = read(temp_dir * "/texput.log", String)
+            tex_log = read(joinpath(temp_dir,"texput.log"), String)
         end
 
         if occursin("LaTeX Warning: Label(s)", tex_log)
@@ -282,20 +275,13 @@ end
 function save(f::PDF, td::TikzDocument)
     # Isolate basename and foldername of file
     basefilename = basename(f.filename)
-    foldername = dirname(f.filename)
-
-    # If current directory desired
-    if isempty(foldername)
-        foldername = "."
-    end
-
-    working_dir = abspath(foldername) # May be equal to original_dir
+    working_dir = dirname(abspath(f.filename))
 
     # Call anonymous function to do task and automatically return
     cd(working_dir) do
         # Create tmp dir in working directory
-        temp_dir = _mktempdir(foldername)
-        temp_filename = string(temp_dir,"/",basefilename)
+        temp_dir = _mktempdir("./")
+        temp_filename = joinpath(temp_dir,basefilename)
 
         try
             save(TEX(temp_filename * ".tex"), td)
@@ -332,18 +318,13 @@ end
 function save(f::SVG, tp::TikzPicture)
 
     basefilename = basename(f.filename)
-    foldername = dirname(f.filename)
-    if isempty(foldername)
-        foldername = "."
-    end
-
-    working_dir = abspath(foldername) # May be equal to original_dir
+    working_dir = dirname(abspath(f.filename))
 
     # Call anonymous function to do task and automatically return
     cd(working_dir) do
         # Create tmp dir in working directory
-        temp_dir = _mktempdir(foldername)
-        temp_filename = string(temp_dir,"/",basefilename)
+        temp_dir = _mktempdir("./")
+        temp_filename = joinpath(temp_dir,basefilename)
 
         # Save the TEX file in tmp dir
         save(TEX(temp_filename * ".tex"), tp)
@@ -404,7 +385,7 @@ function save(f::SVG, tp::TikzPicture)
         if isfile("$(basefilename).svg")
             @warn "$(basefilename).svg already exists, overwriting!"
         end
-        mv("$(temp_filename).svg", string(working_dir,"$(basefilename).svg"),force=true)
+        mv("$(temp_filename).svg", joinpath(working_dir,"$(basefilename).svg"),force=true)
 
         try
             # Shouldn't need to be try-catched anymore, but best to be safe
