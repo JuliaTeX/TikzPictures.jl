@@ -385,7 +385,7 @@ function save(f::SVG, tp::TikzPicture)
         if isfile("$(basefilename).svg")
             @warn "$(basefilename).svg already exists, overwriting!"
         end
-        mv("$(temp_filename).svg", joinpath(working_dir,"$(basefilename).svg"),force=true)
+        mv("$(temp_filename).svg", "$(basefilename).svg",force=true)
 
         try
             # Shouldn't need to be try-catched anymore, but best to be safe
