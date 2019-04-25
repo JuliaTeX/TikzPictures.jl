@@ -9,6 +9,11 @@ _tikzDeleteIntermediate = true
 _tikzCommand = "lualatex"
 _tikzUsePDF2SVG = true
 
+function __init__()
+    if Sys.which("pdf2svg") === nothing
+        @warn "Could not find pdf2svg.  Install it and add to the PATH"
+    end
+end
 
 # standalone workaround:
 # see http://tex.stackexchange.com/questions/315025/lualatex-texlive-2016-standalone-undefined-control-sequence
