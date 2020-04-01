@@ -196,17 +196,7 @@ function latexerrormsg(s)
     end
 end
 
-function _mktempdir(foldername)
-    temp_dir = mktempdir(foldername)
-    if Sys.iswindows()
-        # this seems to be needed for Windows
-        mod_temp_dir = replace(temp_dir, r"(_|\.|\\)" => "")
-        mv(temp_dir, mod_temp_dir)
-        temp_dir = mod_temp_dir
-    end
-    return temp_dir
-end
-
+_joinpath(a, b) = "$a/$b"
 
 function save(f::PDF, tp::TikzPicture)
 
@@ -216,8 +206,8 @@ function save(f::PDF, tp::TikzPicture)
 
     # Call anonymous function to do task and automatically return
     cd(working_dir) do
-        temp_dir = _mktempdir("./")
-        temp_filename = joinpath(temp_dir,basefilename)
+        temp_dir = mktempdir("./")
+        temp_filename = _joinpath(temp_dir,basefilename)
 
         # Save the TEX file in tmp dir
         save(TEX(temp_filename * ".tex"), tp)
@@ -236,7 +226,7 @@ function save(f::PDF, tp::TikzPicture)
         try
             tex_log = read(temp_filename * ".log", String)
         catch
-            tex_log = read(joinpath(temp_dir,"texput.log"), String)
+            tex_log = read(_joinpath(temp_dir,"texput.log"), String)
         end
 
         if occursin("LaTeX Warning: Label(s)", tex_log)
@@ -285,8 +275,8 @@ function save(f::PDF, td::TikzDocument)
     # Call anonymous function to do task and automatically return
     cd(working_dir) do
         # Create tmp dir in working directory
-        temp_dir = _mktempdir("./")
-        temp_filename = joinpath(temp_dir,basefilename)
+        temp_dir = mktempdir("./")
+        temp_filename = _joinpath(temp_dir,basefilename)
 
         try
             save(TEX(temp_filename * ".tex"), td)
@@ -328,8 +318,8 @@ function save(f::SVG, tp::TikzPicture)
     # Call anonymous function to do task and automatically return
     cd(working_dir) do
         # Create tmp dir in working directory
-        temp_dir = _mktempdir("./")
-        temp_filename = joinpath(temp_dir,basefilename)
+        temp_dir = mktempdir("./")
+        temp_filename = _joinpath(temp_dir,basefilename)
 
         # Save the TEX file in tmp dir
         save(TEX(temp_filename * ".tex"), tp)
