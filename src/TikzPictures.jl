@@ -4,16 +4,11 @@ export TikzPicture, PDF, TEX, TIKZ, SVG, save, tikzDeleteIntermediate, tikzComma
 import Base: push!
 import LaTeXStrings: LaTeXString, @L_str, @L_mstr
 export LaTeXString, @L_str, @L_mstr
+import Poppler_jll
 
 _tikzDeleteIntermediate = true
 _tikzCommand = "lualatex"
-_tikzUsePDF2SVG = true
-
-function __init__()
-    if Sys.which("pdf2svg") === nothing
-        @warn "Could not find pdf2svg.  Install it and add to the PATH"
-    end
-end
+_tikzUsePoppler = true
 
 # standalone workaround:
 # see http://tex.stackexchange.com/questions/315025/lualatex-texlive-2016-standalone-undefined-control-sequence
@@ -52,15 +47,15 @@ function tikzCommand()
     _tikzCommand
 end
 
-function tikzUsePDF2SVG(value::Bool)
-    global _tikzUsePDF2SVG
-    _tikzUsePDF2SVG = value
+function tikzUsePoppler(value::Bool)
+    global _tikzUsePoppler
+    _tikzUsePoppler = value
     nothing
 end
 
-function tikzUsePDF2SVG()
-    global _tikzUsePDF2SVG
-    _tikzUsePDF2SVG
+function tikzUsePoppler()
+    global _tikzUsePoppler
+    _tikzUsePoppler
 end
 
 mutable struct TikzPicture
@@ -325,7 +320,7 @@ function save(f::SVG, tp::TikzPicture)
         save(TEX(temp_filename * ".tex"), tp)
 
 
-        if tikzUsePDF2SVG()
+        if tikzUsePoppler()
 
             # Convert to PDF and then to SVG
             latexCommand = ``
@@ -355,7 +350,9 @@ function save(f::SVG, tp::TikzPicture)
             end
 
             # Convert PDF file in tmpdir to SVG file in tmpdir
-            success(`pdf2svg $(temp_filename).pdf $(temp_filename).svg`) || error("pdf2svg failure")
+            Poppler_jll.pdftocairo() do exe
+                success(`$exe -svg $(temp_filename).pdf $(temp_filename).svg`) || error("pdftocairo failure")
+            end
 
         else
             luaSucc = false
@@ -372,7 +369,7 @@ function save(f::SVG, tp::TikzPicture)
                     # Delete tmp dir
                     rm(temp_dir, recursive=true)
                 end
-                error("Direct output to SVG failed! Please consider using PDF2SVG")
+                error("Direct output to SVG failed! Please consider using Poppler")
             end
         end
 
