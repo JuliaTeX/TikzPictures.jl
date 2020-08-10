@@ -95,14 +95,15 @@ end
 
 mutable struct TEX <: SaveType
     filename::AbstractString
-    include_preamble::Bool
-    TEX(filename::AbstractString; include_preamble::Bool=true) = new(removeExtension(filename, ".tex"), include_preamble)
+    limit_to::Symbol
+    TEX(filename::AbstractString; include_preamble::Bool=true, limit_to::Symbol=(include_preamble ? :all : :picture)) =
+        new(removeExtension(filename, ".tex"), limit_to)
 end
 
 mutable struct TIKZ <: SaveType
     filename::AbstractString
-    include_preamble::Bool
-    TIKZ(filename::AbstractString) = new(removeExtension(filename, ".tikz"), false)
+    limit_to::Symbol
+    TIKZ(filename::AbstractString) = new(removeExtension(filename, ".tikz"), :all)
 end
 
 mutable struct SVG <: SaveType
@@ -115,35 +116,44 @@ extension(f::SaveType) = lowercase(split("$(typeof(f))",".")[end])
 showable(::MIME"image/svg+xml", tp::TikzPicture) = true
 
 function save(f::Union{TEX,TIKZ}, tp::TikzPicture)
+    if !in(f.limit_to, [:all, :picture, :data])
+        throw(ArgumentError("limit_to must be one of :all, :picture, and :data"))
+    end
     filename = f.filename
     ext = extension(f)
     tex = open("$(filename).$(ext)", "w")
-    if f.include_preamble
-        if standaloneWorkaround()
-            println(tex, "\\RequirePackage{luatex85}")
+    if f.limit_to in [:all, :picture]
+        if f.limit_to == :all
+            if standaloneWorkaround()
+                println(tex, "\\RequirePackage{luatex85}")
+            end
+            println(tex, "\\documentclass[tikz]{standalone}")
+            println(tex, tp.preamble)
+            println(tex, "\\begin{document}")
         end
-        println(tex, "\\documentclass[tikz]{standalone}")
-        println(tex, tp.preamble)
-        println(tex, "\\begin{document}")
+        print(tex, "\\begin{tikzpicture}[")
+        print(tex, tp.options)
+        println(tex, "]")
     end
-    print(tex, "\\begin{tikzpicture}[")
-    print(tex, tp.options)
-    println(tex, "]")
     println(tex, tp.data)
-    println(tex, "\\end{tikzpicture}")
-    if f.include_preamble
-        println(tex, "\\end{document}")
+    if f.limit_to in [:all, :picture]
+        println(tex, "\\end{tikzpicture}")
+        if f.limit_to == :all
+            println(tex, "\\end{document}")
+        end
     end
     close(tex)
 end
 
 function save(f::TEX, td::TikzDocument)
     if isempty(td.pictures)
-        error("TikzDocument does not contain pictures")
+        throw(ArgumentError("TikzDocument does not contain pictures"))
+    elseif !in(f.limit_to, [:all, :picture])
+        throw(ArgumentError("limit_to must be either :all or :picture"))
     end
     filename = f.filename
     tex = open("$(filename).tex", "w")
-    if f.include_preamble
+    if f.limit_to == :all
         println(tex, "\\documentclass{article}")
         println(tex, "\\usepackage{caption}")
         println(tex, "\\usepackage{tikz}")
@@ -167,7 +177,7 @@ function save(f::TEX, td::TikzDocument)
         println(tex)
         i += 1
     end
-    if f.include_preamble
+    if f.limit_to == :all
         println(tex, "\\end{document}")
     end
     close(tex)
