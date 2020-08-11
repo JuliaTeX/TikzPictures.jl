@@ -31,3 +31,13 @@ tp = TikzPicture(L"""
 \node at (5,5) {tikz $\sqrt{\pi}$};"""
 , options="scale=0.25", preamble="")
 ```
+
+## Embedding TEX files in external documents
+
+Compiling a standalone LaTeX file requires the Tikz code to be wrapped in a `tikzpicture` environment, which again is wrapped in a `document` environment. You can omit these wrappers if you intend to embed the output in a larger document, instead of compiling it as a standalone file.
+
+```julia
+save(TEX("test"; limit_to=:all), tp) # the default, save a complete file
+save(TEX("test"; limit_to=:picture), tp) # only wrap in a tikzpicture environment
+save(TEX("test"; limit_to=:data), tp) # do not wrap the Tikz code, at all
+```
