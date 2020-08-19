@@ -1,8 +1,14 @@
 using TikzPictures
 using Test
 
+svgBackends = [
+    "testPic.pdf2svg.svg" => PdfToSvgBackend(),
+    "testPic.poppler.svg" => PopplerBackend(),
+    "testPic.dvisvgm.svg" => DVIBackend()
+]
+
 # Pre-test cleanup (for repeated tests)
-for file in ["testPic.pdf", "testPic.svg", "testDoc.pdf", "testDoc.tex"]
+for file in ["testPic.pdf", "testPic.svg", "testDoc.pdf", "testDoc.tex", first.(svgBackends)...]
 	if isfile(file)
 		rm(file)
 	end
@@ -54,7 +60,13 @@ if success(`lualatex -v`)
 	@test isfile("testPic.pdf")
 
     save(SVG("testPic"), tp)
-    @test isfile("testPic.svg")
+    @test isfile("testPic.svg") # default SVG backend
+
+    @testset for (k, v) in svgBackends
+        svgBackend(v)
+        save(SVG(k), tp)
+        @test isfile(k)
+    end
 
     save(PDF("testDoc"), td)
     @test isfile("testDoc.pdf")

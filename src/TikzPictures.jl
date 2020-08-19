@@ -4,11 +4,31 @@ export TikzPicture, PDF, TEX, TIKZ, SVG, save, tikzDeleteIntermediate, tikzComma
 import Base: push!
 import LaTeXStrings: LaTeXString, @L_str, @L_mstr
 export LaTeXString, @L_str, @L_mstr
-import Poppler_jll
 
 _tikzDeleteIntermediate = true
 _tikzCommand = "lualatex"
-_tikzUsePoppler = true
+
+mutable struct TikzPicture
+    data::AbstractString
+    options::AbstractString
+    preamble::AbstractString
+    enableWrite18::Bool
+    TikzPicture(data::AbstractString; options="", preamble="", enableWrite18=true) = new(data, options, preamble, enableWrite18)
+end
+
+mutable struct TikzDocument
+    pictures::Vector{TikzPicture}
+    captions::Vector{AbstractString}
+end
+TikzDocument() = TikzDocument(TikzPicture[], String[])
+
+
+# svg handling
+include("svg.jl")
+__init__() = __init__svg()
+
+tikzUsePoppler() = svgBackend() == PopplerBackend()
+tikzUsePoppler(value::Bool) = svgBackend(value ? PopplerBackend() : DVIBackend())
 
 # standalone workaround:
 # see http://tex.stackexchange.com/questions/315025/lualatex-texlive-2016-standalone-undefined-control-sequence
@@ -46,32 +66,6 @@ function tikzCommand()
     global _tikzCommand
     _tikzCommand
 end
-
-function tikzUsePoppler(value::Bool)
-    global _tikzUsePoppler
-    _tikzUsePoppler = value
-    nothing
-end
-
-function tikzUsePoppler()
-    global _tikzUsePoppler
-    _tikzUsePoppler
-end
-
-mutable struct TikzPicture
-    data::AbstractString
-    options::AbstractString
-    preamble::AbstractString
-    enableWrite18::Bool
-    TikzPicture(data::AbstractString; options="", preamble="", enableWrite18=true) = new(data, options, preamble, enableWrite18)
-end
-
-mutable struct TikzDocument
-    pictures::Vector{TikzPicture}
-    captions::Vector{AbstractString}
-end
-
-TikzDocument() = TikzDocument(TikzPicture[], String[])
 
 function push!(td::TikzDocument, tp::TikzPicture; caption="")
     push!(td.pictures, tp)
@@ -314,9 +308,7 @@ function save(f::PDF, td::TikzDocument)
     end
 end
 
-
 function save(f::SVG, tp::TikzPicture)
-
     basefilename = basename(f.filename)
     working_dir = dirname(abspath(f.filename))
 
@@ -326,62 +318,9 @@ function save(f::SVG, tp::TikzPicture)
         temp_dir = mktempdir("./")
         temp_filename = _joinpath(temp_dir,basefilename)
 
-        # Save the TEX file in tmp dir
+        # Save the TEX file in tmp dir, then convert to SVG
         save(TEX(temp_filename * ".tex"), tp)
-
-
-        if tikzUsePoppler()
-
-            # Convert to PDF and then to SVG
-            latexCommand = ``
-            if tp.enableWrite18
-                latexCommand = `$(tikzCommand()) --enable-write18 --output-directory=$(temp_dir) $(temp_filename*".tex")`
-            else
-                latexCommand = `$(tikzCommand()) --output-directory=$(temp_dir) $(temp_filename*".tex")`
-            end
-
-            latexSuccess = success(latexCommand)
-
-            tex_log = read(temp_filename * ".log", String)
-
-            if occursin("LaTeX Warning: Label(s)", tex_log)
-                success(latexCommand)
-            end
-
-            if !latexSuccess
-            # Remove failed attempt.
-                if !standaloneWorkaround() && occursin("\\sa@placebox ->\\newpage \\global \\pdfpagewidth", tex_log)
-                    standaloneWorkaround(true)
-                    save(f, tp)
-                    return
-                end
-                latexerrormsg(tex_log)
-                error("LaTeX error")
-            end
-
-            # Convert PDF file in tmpdir to SVG file in tmpdir
-            Poppler_jll.pdftocairo() do exe
-                success(`$exe -svg $(temp_filename).pdf $(temp_filename).svg`) || error("pdftocairo failure")
-            end
-
-        else
-            luaSucc = false
-            if tp.enableWrite18
-                luaSucc = success(`$(tikzCommand()) --enable-write18 --output-format=dvi --output-directory=$(temp_dir) $(temp_filename*".tex")`)
-            else
-                luaSucc = success(`$(tikzCommand()) --output-format=dvi --output-directory=$(temp_dir) $(temp_filename*".tex")`)
-            end
-            dviSuccess = success(`dvisvgm --no-fonts $(temp_filename*".dvi")`)
-
-            # Commands fail silently so check if SVG exists and throw error with warning if not
-            if !luaSucc || !dviSuccess
-                if tikzDeleteIntermediate()
-                    # Delete tmp dir
-                    rm(temp_dir, recursive=true)
-                end
-                error("Direct output to SVG failed! Please consider using Poppler")
-            end
-        end
+        _mkTempSvg(tp, temp_dir, temp_filename)
 
         # Move SVG out of tmpdir into working dir and give warning if overwriting
         if isfile("$(basefilename).svg")
