@@ -6,6 +6,10 @@ svgBackends = [
     "testPic.poppler.svg" => PopplerBackend(),
     "testPic.dvisvgm.svg" => DVIBackend()
 ]
+if VERSION < v"1.3"
+    deleteat!(svgBackends, 2)
+    @warn "Not testing PopplerBackend on Julia versions < 1.3"
+end
 
 # Pre-test cleanup (for repeated tests)
 for file in ["testPic.pdf", "testPic.svg", "testDoc.pdf", "testDoc.tex", first.(svgBackends)...]
