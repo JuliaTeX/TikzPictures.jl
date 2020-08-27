@@ -81,7 +81,7 @@ end
 
 # Test tikz-cd
 
-data = "A\\arrow[rd]\\arrow[r] & B \\\\& C"
+data = "A\\arrow{rd}\\arrow{r} & B \\\\& C"
 tp = TikzPicture(data, options="scale=0.25", environment="tikzcd", preamble="\\usepackage{tikz-cd}")
 td = TikzDocument()
 push!(td, tp, caption="hello")
