@@ -12,8 +12,9 @@ mutable struct TikzPicture
     data::AbstractString
     options::AbstractString
     preamble::AbstractString
+    environment::AbstractString
     enableWrite18::Bool
-    TikzPicture(data::AbstractString; options="", preamble="", enableWrite18=true) = new(data, options, preamble, enableWrite18)
+    TikzPicture(data::AbstractString; options="", preamble="", environment="tikzpicture", enableWrite18=true) = new(data, options, preamble, environment, enableWrite18)
 end
 
 mutable struct TikzDocument
@@ -125,13 +126,13 @@ function save(f::Union{TEX,TIKZ}, tp::TikzPicture)
             println(tex, tp.preamble)
             println(tex, "\\begin{document}")
         end
-        print(tex, "\\begin{tikzpicture}[")
+        print(tex, "\\begin{$(tp.environment)}[")
         print(tex, tp.options)
         println(tex, "]")
     end
     println(tex, tp.data)
     if f.limit_to in [:all, :picture]
-        println(tex, "\\end{tikzpicture}")
+        println(tex, "\\end{$(tp.environment)}")
         if f.limit_to == :all
             println(tex, "\\end{document}")
         end
@@ -159,11 +160,11 @@ function save(f::TEX, td::TikzDocument)
     i = 1
     for tp in td.pictures
         println(tex, "\\centering")
-        print(tex, "\\begin{tikzpicture}[")
+        print(tex, "\\begin{$(tp.environment)}[")
         print(tex, tp.options)
         println(tex, "]")
         println(tex, tp.data)
-        println(tex, "\\end{tikzpicture}")
+        println(tex, "\\end{$(tp.environment)}")
         print(tex, "\\captionof{figure}{")
         print(tex, td.captions[i])
         println(tex, "}")
