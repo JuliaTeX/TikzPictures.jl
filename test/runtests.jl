@@ -13,9 +13,9 @@ end
 
 # Pre-test cleanup (for repeated tests)
 for file in ["testPic.pdf", "testPic.svg", "testDoc.pdf", "testDoc.tex", first.(svgBackends)...]
-	if isfile(file)
-		rm(file)
-	end
+  if isfile(file)
+    rm(file)
+  end
 end
 
 # Run tests
@@ -39,6 +39,7 @@ function has_environment(content::String, environment::String)
         error("\\begin{$environment} and \\end{$environment} do not match")
     end
 end
+
 filecontent = join(readlines("testPic.tex", keep=true)) # read with line breaks
 @test occursin(data, filecontent) # also check that the data is contained
 @test has_environment(filecontent, "tikzpicture")
@@ -60,8 +61,8 @@ filecontent = join(readlines("testPic.tex", keep=true))
 
 save(TEX("testPic"), tp) # save again with limit_to=:all
 if success(`lualatex -v`)
-	save(PDF("testPic"), tp)
-	@test isfile("testPic.pdf")
+  save(PDF("testPic"), tp)
+  @test isfile("testPic.pdf")
 
     save(SVG("testPic"), tp)
     @test isfile("testPic.svg") # default SVG backend
@@ -74,6 +75,31 @@ if success(`lualatex -v`)
 
     save(PDF("testDoc"), td)
     @test isfile("testDoc.pdf")
+else
+    @warn "lualatex is missing; can not test compilation"
+end
+
+# Test tikz-cd
+
+data = "A\\arrow{rd}\\arrow{r} & B \\\\& C"
+tp = TikzPicture(data, options="scale=0.25", environment="tikzcd", preamble="\\usepackage{tikz-cd}")
+td = TikzDocument()
+push!(td, tp, caption="hello")
+
+save(TEX("testCD"), tp)
+@test isfile("testCD.tex")
+
+filecontent = join(readlines("testCD.tex", keep=true)) # read with line breaks
+@test occursin(data, filecontent) # also check that the data is contained
+@test has_environment(filecontent, "tikzcd")
+@test has_environment(filecontent, "document")
+
+if success(`lualatex -v`)
+    save(PDF("testCD"), tp)
+    @test isfile("testCD.pdf")
+
+    save(PDF("testCDDoc"), td)
+    @test isfile("testCDDoc.pdf")
 else
     @warn "lualatex is missing; can not test compilation"
 end
