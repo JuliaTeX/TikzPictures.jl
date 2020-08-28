@@ -1,6 +1,6 @@
 module TikzPictures
 
-export TikzPicture, PDF, TEX, TIKZ, SVG, save, tikzDeleteIntermediate, tikzCommand, TikzDocument, push!
+export TikzPicture, TikzCD, PDF, TEX, TIKZ, SVG, save, tikzDeleteIntermediate, tikzCommand, TikzDocument, push!
 import Base: push!
 import LaTeXStrings: LaTeXString, @L_str, @L_mstr
 export LaTeXString, @L_str, @L_mstr
@@ -15,6 +15,18 @@ mutable struct TikzPicture
     environment::AbstractString
     enableWrite18::Bool
     TikzPicture(data::AbstractString; options="", preamble="", environment="tikzpicture", enableWrite18=true) = new(data, options, preamble, environment, enableWrite18)
+end
+
+function TikzCD(data::AbstractString; options="", preamble="", environment="tikzcd", enableWrite18=true)
+  # check for tikz-cd package being imported
+  if !occursin("\\usepackage{tikz-cd}", preamble)
+    preamble = strip(string("\\usepackage{tikz-cd}\n", preamble))
+  end
+  # tikz-cd doesn't support the content being in a $$, so this helps when using LaTeXStrings
+  if typeof(data) == LaTeXString
+    data = strip(data[2:end-1])
+  end
+  TikzPicture(data, options=options, preamble=preamble, environment=environment, enableWrite18=enableWrite18)
 end
 
 mutable struct TikzDocument

@@ -12,7 +12,7 @@ if VERSION < v"1.3"
 end
 
 # Pre-test cleanup (for repeated tests)
-for file in ["testPic.pdf", "testPic.svg", "testDoc.pdf", "testDoc.tex", first.(svgBackends)...]
+for file in ["testPic.pdf", "testPic.svg", "testDoc.pdf", "testDoc.tex", "testCD.pdf", "testCDDoc.pdf", "testCD.tex", first.(svgBackends)...]
   if isfile(file)
     rm(file)
   end
@@ -81,8 +81,12 @@ end
 
 # Test tikz-cd
 
-data = "A\\arrow{rd}\\arrow{r} & B \\\\& C"
-tp = TikzPicture(data, options="scale=0.25", environment="tikzcd", preamble="\\usepackage{tikz-cd}")
+data = L"""
+  A \arrow{rd} \arrow{r} & B \\
+                         & C
+"""
+tp = TikzCD(data, options="scale=0.25")
+
 td = TikzDocument()
 push!(td, tp, caption="hello")
 
@@ -90,7 +94,7 @@ save(TEX("testCD"), tp)
 @test isfile("testCD.tex")
 
 filecontent = join(readlines("testCD.tex", keep=true)) # read with line breaks
-@test occursin(data, filecontent) # also check that the data is contained
+@test occursin(strip(data[2:end-1]), filecontent) # also check that the data is contained
 @test has_environment(filecontent, "tikzcd")
 @test has_environment(filecontent, "document")
 
