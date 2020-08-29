@@ -1,7 +1,7 @@
 name = "TikzPictures"
 uuid = "37f6aa50-8035-52d0-81c2-5a1d08754b2d"
 license = "MIT"
-version = "3.3.0"
+version = "3.3.1"
 
 [deps]
 LaTeXStrings = "b964fa9f-0449-5b57-a5c2-d3ea65f4040f"
@@ -9,8 +9,10 @@ Poppler_jll = "9c32591e-4766-534b-9725-b71a8799265b"
 Requires = "ae029012-a4dd-5104-9daa-d747884805df"
 
 [compat]
-LaTeXStrings = "1.1"
 julia = "1"
+LaTeXStrings = "1.1"
+Poppler_jll = "0.87"
+Requires = "1.0"
 
 [extras]
 Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
