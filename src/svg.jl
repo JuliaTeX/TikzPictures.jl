@@ -23,7 +23,12 @@ function __init__svg()
     if Sys.which("pdf2svg") != nothing
         svgBackend(PdfToSvgBackend())
     else
-        svgBackend(PopplerBackend())
+        try
+            svgBackend(PopplerBackend())
+        catch cause
+            @warn "Failed to load PopplerBackend; falling back on DVIBackend" cause
+            svgBackend(DVIBackend())
+        end
     end
 
     # define a new implementation for PopplerBackend, but only after `import Poppler_jll`
@@ -54,12 +59,14 @@ end
 # backend initialization
 _initialize(backend::SVGBackend) = nothing # default
 _initialize(backend::PopplerBackend) =
-    try
-        @eval Main begin
-            import Poppler_jll # will trigger @require in __init__svg
+    if !Requires.isprecompiling()
+        @eval TikzPictures begin
+            try
+                import Poppler_jll # will trigger @require in __init__svg
+            catch
+                error("Unable to import Poppler_jll") # should not happen as long as Poppler_jll is a dependency
+            end
         end
-    catch
-        error("Unable to initialize $backend") # should not happen as long as Poppler_jll is a dependency
     end
 
 # compile a temporary PDF file that can be converted to SVG
