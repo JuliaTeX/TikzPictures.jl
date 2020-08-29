@@ -54,12 +54,14 @@ end
 # backend initialization
 _initialize(backend::SVGBackend) = nothing # default
 _initialize(backend::PopplerBackend) =
-    try
+    if !Requires.isprecompiling()
         @eval Main begin
-            import Poppler_jll # will trigger @require in __init__svg
+            try
+                import Poppler_jll # will trigger @require in __init__svg
+            catch
+                error("Unable to initialize $backend") # should not happen as long as Poppler_jll is a dependency
+            end
         end
-    catch
-        error("Unable to initialize $backend") # should not happen as long as Poppler_jll is a dependency
     end
 
 # compile a temporary PDF file that can be converted to SVG
