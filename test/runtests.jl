@@ -103,3 +103,16 @@ if success(`lualatex -v`)
 else
     @warn "lualatex is missing; can not test compilation"
 end
+
+# Test adjustbox width/height
+adjustbox_width = TikzPicture(L"\node (sigmoid) [circle, draw=black, label=left:{$\sigma(z)$}] {};", width="2cm")
+save(TEX("adjustbox_width"), adjustbox_width)
+@test isfile("adjustbox_width.tex")
+
+adjustbox_height = TikzPicture(L"\node (sigmoid) [circle, draw=black, label=left:{$\sigma(z)$}] {};", height="10cm")
+save(TEX("adjustbox_height"), adjustbox_height)
+@test isfile("adjustbox_height.tex")
+
+adjustbox_aspect = TikzPicture(L"\node (sigmoid) [circle, draw=black, label=left:{$\sigma(z)$}] {};", height="10cm", keepAspectRatio=false)
+save(TEX("adjustbox_aspect"), adjustbox_aspect)
+@test isfile("adjustbox_aspect.tex")
