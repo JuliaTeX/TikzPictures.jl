@@ -13,8 +13,11 @@ mutable struct TikzPicture
     options::AbstractString
     preamble::AbstractString
     environment::AbstractString
+    width::AbstractString
+    height::AbstractString
+    keepAspectRatio::Bool
     enableWrite18::Bool
-    TikzPicture(data::AbstractString; options="", preamble="", environment="tikzpicture", enableWrite18=true) = new(data, options, preamble, environment, enableWrite18)
+    TikzPicture(data::AbstractString; options="", preamble="", environment="tikzpicture", width="", height="", keepAspectRatio=true, enableWrite18=true) = new(data, options, preamble, environment, width, height, keepAspectRatio, enableWrite18)
 end
 
 mutable struct TikzDocument
@@ -108,6 +111,24 @@ end
 
 extension(f::SaveType) = lowercase(split("$(typeof(f))",".")[end])
 
+resize(tp::TikzPicture) = !isempty(tp.width) || !isempty(tp.height)
+
+function write_adjustbox_options(tex::IO, tp::TikzPicture)
+    adjustbox_options = []
+    if !isempty(tp.width)
+        push!(adjustbox_options, "width=$(tp.width)")
+    end
+    if !isempty(tp.height)
+        push!(adjustbox_options, "height=$(tp.height)")
+    end
+    if tp.keepAspectRatio
+        push!(adjustbox_options, "keepaspectratio")
+    end
+    adjustbox_option_string = join(adjustbox_options, ',')
+    println(tex, "\\begin{adjustbox}{$adjustbox_option_string}")
+end
+
+
 showable(::MIME"image/svg+xml", tp::TikzPicture) = true
 
 function save(f::Union{TEX,TIKZ}, tp::TikzPicture)
@@ -122,9 +143,21 @@ function save(f::Union{TEX,TIKZ}, tp::TikzPicture)
             if standaloneWorkaround()
                 println(tex, "\\RequirePackage{luatex85}")
             end
-            println(tex, "\\documentclass[tikz]{standalone}")
+            if resize(tp)
+                # [tikz] class option has to be moved to a \usepackage
+                # https://tex.stackexchange.com/questions/455546/can-i-resize-a-tikz-picture-to-have-certain-dimensions-width-height
+                println(tex, "\\documentclass{standalone}")
+                println(tex, "\\usepackage{tikz}")
+                println(tex, "\\usepackage{adjustbox}")
+            else
+                println(tex, "\\documentclass[tikz]{standalone}")
+            end
             println(tex, tp.preamble)
             println(tex, "\\begin{document}")
+        end
+
+        if resize(tp)
+            write_adjustbox_options(tex, tp)
         end
         print(tex, "\\begin{$(tp.environment)}[")
         print(tex, tp.options)
@@ -133,6 +166,11 @@ function save(f::Union{TEX,TIKZ}, tp::TikzPicture)
     println(tex, tp.data)
     if f.limit_to in [:all, :picture]
         println(tex, "\\end{$(tp.environment)}")
+        if resize(tp)
+            println(tex, "\\end{adjustbox}")
+        else
+            print(tex, "\n")
+        end
         if f.limit_to == :all
             println(tex, "\\end{document}")
         end
@@ -160,11 +198,17 @@ function save(f::TEX, td::TikzDocument)
     i = 1
     for tp in td.pictures
         println(tex, "\\centering")
+        if resize(tp)
+            write_adjustbox_options(tex, tp)
+        end
         print(tex, "\\begin{$(tp.environment)}[")
         print(tex, tp.options)
         println(tex, "]")
         println(tex, tp.data)
         println(tex, "\\end{$(tp.environment)}")
+        if resize(tp)
+            println(tex, "\\end{adjustbox}")
+        end
         print(tex, "\\captionof{figure}{")
         print(tex, td.captions[i])
         println(tex, "}")
