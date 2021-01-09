@@ -101,7 +101,7 @@ end
 mutable struct TIKZ <: SaveType
     filename::AbstractString
     limit_to::Symbol
-    TIKZ(filename::AbstractString) = new(removeExtension(filename, ".tikz"), :all)
+    TIKZ(filename::AbstractString; include_preamble::Bool=true, limit_to::Symbol=(include_preamble ? :all : :picture)) = new(removeExtension(filename, ".tikz"), limit_to)
 end
 
 mutable struct SVG <: SaveType
