@@ -2,8 +2,8 @@ module TikzPictures
 
 export TikzPicture, PDF, TEX, TIKZ, SVG, save, tikzDeleteIntermediate, tikzCommand, TikzDocument, push!
 import Base: push!
-import LaTeXStrings: LaTeXString, @L_str, @L_mstr
-export LaTeXString, @L_str, @L_mstr
+import LaTeXStrings: LaTeXString, @L_str
+export LaTeXString, @L_str
 
 _tikzDeleteIntermediate = true
 _tikzCommand = "lualatex"
