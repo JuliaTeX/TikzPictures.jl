@@ -1,9 +1,7 @@
 # TikzPictures
 
-[![Build Status](https://travis-ci.org/JuliaTeX/TikzPictures.jl.svg)](https://travis-ci.org/JuliaTeX/TikzPictures.jl)
-[![Coverage Status](https://coveralls.io/repos/github/JuliaTeX/TikzPictures.jl/badge.svg?branch=master)](https://coveralls.io/github/JuliaTeX/TikzPictures.jl?branch=master)
-
-
+[![Build Status](https://github.com/JuliaTeX/TikzPictures.jl/workflows/CI/badge.svg)](https://github.com/JuliaTeX/PGFPlots.jl/actions)
+[![codecov](https://codecov.io/gh/JuliaTeX/TikzPictures.jl/branch/master/graph/badge.svg?token=nCBJc77iDE)](https://codecov.io/gh/JuliaTeX/TikzPictures.jl)
 
 This library allows one to create Tikz pictures and save in various formats. It integrates with IJulia, outputting SVG images to the notebook.
 
