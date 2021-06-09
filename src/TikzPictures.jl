@@ -3,6 +3,8 @@ module TikzPictures
 export TikzPicture, PDF, TEX, TIKZ, SVG, save, tikzDeleteIntermediate, tikzCommand, TikzDocument, push!
 import Base: push!
 import LaTeXStrings: LaTeXString, @L_str
+import Tectonic
+
 export LaTeXString, @L_str
 
 _tikzDeleteIntermediate = true
@@ -258,19 +260,28 @@ function save(f::PDF, tp::TikzPicture)
 
         # From the .tex file, generate a pdf within the tmp folder
         latexCommand = ``
-        if tp.enableWrite18
-            latexCommand = `$(tikzCommand()) --enable-write18 --output-directory=$(temp_dir) $(temp_filename*".tex")`
-        else
-            latexCommand = `$(tikzCommand()) --output-directory=$(temp_dir) $(temp_filename*".tex")`
+        args = [
+            "$(temp_filename).tex"
+        ]
+        if false # tp.enableWrite18
+            args = [args; "--enableWrite18"]
         end
 
-        latexSuccess = success(latexCommand)
+        Tectonic.tectonic() do tectonic_bin
+            latexCommand = `$tectonic_bin $args`
+            latexSuccess = success(latexCommand)
+        end
 
         tex_log = ""
         try
             tex_log = read(temp_filename * ".log", String)
         catch
-            tex_log = read(_joinpath(temp_dir,"texput.log"), String)
+            try
+                tex_log = read(_joinpath(temp_dir,"texput.log"), String)
+            catch
+                # Tectonic
+                nothing
+            end
         end
 
         if occursin("LaTeX Warning: Label(s)", tex_log)
