@@ -20,7 +20,7 @@ end
 function __init__svg()
 
     # determine the backend to use
-    if Sys.which("pdf2svg") != nothing
+    if Sys.which("pdf2svg") !== nothing
         svgBackend(PdfToSvgBackend())
     else
         try
@@ -71,25 +71,31 @@ _initialize(backend::PopplerBackend) =
 
 # compile a temporary PDF file that can be converted to SVG
 function _mkTempPdf(tp::TikzPicture, temp_dir::AbstractString, temp_filename::AbstractString; dvi::Bool=false)
-    latexArgs = String[tikzCommand()]
-    if tp.enableWrite18
-        push!(latexArgs, "--enable-write18")
-    end
-    if dvi
-        push!(latexArgs, "--output-format=dvi")
-    end
-    latexCommand = `$latexArgs --output-directory=$(temp_dir) $(temp_filename*".tex")`
-    latexSuccess = success(latexCommand)
+    _run(tp, temp_dir, temp_filename; dvi=dvi)
+    # latexArgs = String[tikzCommand()]
+    # if tp.enableWrite18
+    #     push!(latexArgs, "--enable-write18")
+    # end
+    # if dvi
+    #     push!(latexArgs, "--output-format=dvi")
+    # end
+    # latexCommand = `$latexArgs --output-directory=$(temp_dir) $(temp_filename*".tex")`
+    # # latexSuccess = success(latexCommand)
+    # println("HI2342")
+    # latexSuccess = _run(tp, temp_filename, temp_dir, dvi=dvi)
+    # println("HI2342234234")
 
-    tex_log = read(temp_filename * ".log", String)
-    if occursin("LaTeX Warning: Label(s)", tex_log)
-        latexSuccess = success(latexCommand)
-    end # second run
+    # tex_log = read(temp_filename * ".log", String)
+    # if occursin("LaTeX Warning: Label(s)", tex_log)
+    #     latexSuccess = _run(tp, temp_filename, temp_dir, dvi=dvi)
+    # end # second run
 
-    if !latexSuccess
-        latexerrormsg(tex_log)
-        error("LaTeX error")
-    end
+    # @show latexSuccess
+
+    # if !latexSuccess
+    #     latexerrormsg(tex_log)
+    #     error("LaTeX error")
+    # end
 end
 
 # compile temporary SVGs with different backends

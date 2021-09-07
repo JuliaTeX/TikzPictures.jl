@@ -69,8 +69,15 @@ if success(`lualatex -v`)
 
     @testset for (k, v) in svgBackends
         svgBackend(v)
-        save(SVG(k), tp)
-        @test isfile(k)
+        for usetectonic in [true, false]
+            if usetectonic && v == DVIBackend()
+                continue
+            end
+            tikzUseTectonic(usetectonic)
+            save(SVG(k), tp)
+            @test isfile(k)
+            rm(k)
+        end
     end
 
     save(PDF("testDoc"), td)

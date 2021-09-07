@@ -1,12 +1,14 @@
 module TikzPictures
 
-export TikzPicture, PDF, TEX, TIKZ, SVG, save, tikzDeleteIntermediate, tikzCommand, TikzDocument, push!
+export TikzPicture, PDF, TEX, TIKZ, SVG, save, tikzDeleteIntermediate, tikzCommand, tikzUseTectonic, TikzDocument, push!
 import Base: push!
 import LaTeXStrings: LaTeXString, @L_str
+import Tectonic: tectonic
 export LaTeXString, @L_str
 
 _tikzDeleteIntermediate = true
 _tikzCommand = "lualatex"
+_tikzUseTectonic = false
 
 mutable struct TikzPicture
     data::AbstractString
@@ -69,6 +71,17 @@ end
 function tikzCommand()
     global _tikzCommand
     _tikzCommand
+end
+
+function tikzUseTectonic(value::Bool)
+    global _tikzUseTectonic
+    _tikzUseTectonic = value
+    nothing
+end
+
+function tikzUseTectonic()
+    global _tikzUseTectonic
+    _tikzUseTectonic
 end
 
 function push!(td::TikzDocument, tp::TikzPicture; caption="")
@@ -242,8 +255,39 @@ end
 
 _joinpath(a, b) = "$a/$b"
 
-function save(f::PDF, tp::TikzPicture)
+function _run(tp::TikzPicture, temp_dir::AbstractString, temp_filename::AbstractString; dvi::Bool=false)
+    arg = String[tikzCommand()]
+    latexSuccess = false
+    if tikzUseTectonic() || !success(`$(tikzCommand()) -v`)
+        tectonic() do tectonic_bin
+            if dvi
+                error("Tectonic does not currently support dvi backend")
+            end
+            arg[1] = tectonic_bin
+            if tp.enableWrite18
+                push!(arg, "-Zshell-escape")
+            end
+            push!(arg, "-o$(temp_dir)")
+            latexSuccess = success(`$(arg) $(temp_filename*".tex")`)
+        end            
+    else
+        if tp.enableWrite18
+            push!(arg, "--enable-write18")
+        end
+        if dvi
+            push!(arg, "--output-format=dvi")
+        end
+        push!(arg, "--output-directory=$(temp_dir)")
+        latexSuccess = success(`$(arg) $(temp_filename*".tex")`)
+    end
+    if !latexSuccess
+        latexerrormsg(tex_log)
+        error("LaTeX error")
+    end  
+    return latexSuccess  
+end
 
+function save(f::PDF, tp::TikzPicture)
     # Isolate basename and foldername of file
     basefilename = basename(f.filename)
     working_dir = dirname(abspath(f.filename))
@@ -255,16 +299,7 @@ function save(f::PDF, tp::TikzPicture)
 
         # Save the TEX file in tmp dir
         save(TEX(temp_filename * ".tex"), tp)
-
-        # From the .tex file, generate a pdf within the tmp folder
-        latexCommand = ``
-        if tp.enableWrite18
-            latexCommand = `$(tikzCommand()) --enable-write18 --output-directory=$(temp_dir) $(temp_filename*".tex")`
-        else
-            latexCommand = `$(tikzCommand()) --output-directory=$(temp_dir) $(temp_filename*".tex")`
-        end
-
-        latexSuccess = success(latexCommand)
+        latexSuccess = _run(tp, temp_dir, temp_filename)
 
         tex_log = ""
         try
@@ -274,7 +309,7 @@ function save(f::PDF, tp::TikzPicture)
         end
 
         if occursin("LaTeX Warning: Label(s)", tex_log)
-            latexSuccess = success(latexCommand)
+            latexSuccess = _run(tp, temp_dir, temp_filename)
         end
 
         # Move PDF out of tmpdir regardless
@@ -324,11 +359,7 @@ function save(f::PDF, td::TikzDocument)
 
         try
             save(TEX(temp_filename * ".tex"), td)
-            if td.pictures[1].enableWrite18
-                success(`$(tikzCommand()) --enable-write18 --output-directory=$(temp_dir) $(temp_filename)`)
-            else
-                success(`$(tikzCommand()) --output-directory=$(temp_dir) $(temp_filename)`)
-            end
+            latexSuccess = _run(td.pictures[1], temp_dir, temp_filename)
 
             # Move PDF out of tmpdir regardless
             if isfile("$(basefilename).pdf")
