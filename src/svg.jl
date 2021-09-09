@@ -71,13 +71,12 @@ _initialize(backend::PopplerBackend) =
 
 # compile a temporary PDF file that can be converted to SVG
 function _mkTempPdf(tp::TikzPicture, temp_dir::AbstractString, temp_filename::AbstractString; dvi::Bool=false)
-    latexSuccess = _run(tp, temp_dir, temp_filename; dvi=dvi)
-    tex_log = read(temp_filename * ".log", String)
-    if occursin("LaTeX Warning: Label(s)", tex_log)
-        latexSuccess = _run(tp, temp_filename, temp_dir, dvi=dvi)
+    latexSuccess, texlog = _run(tp, temp_dir, temp_filename; dvi=dvi)
+    if occursin("LaTeX Warning: Label(s)", texlog)
+        latexSuccess, texlog = _run(tp, temp_filename, temp_dir, dvi=dvi)
     end # second run
     if !latexSuccess
-        latexerrormsg(tex_log)
+        latexerrormsg(texlog)
         error("LaTeX error")
     end
 end

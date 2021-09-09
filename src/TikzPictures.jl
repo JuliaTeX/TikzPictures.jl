@@ -126,6 +126,20 @@ extension(f::SaveType) = lowercase(split("$(typeof(f))",".")[end])
 
 resize(tp::TikzPicture) = !isempty(tp.width) || !isempty(tp.height)
 
+# from: https://discourse.julialang.org/t/collecting-all-output-from-shell-commands/15592
+function execute(cmd::Cmd)
+    out = Pipe()
+    err = Pipe()
+    process = run(pipeline(ignorestatus(cmd), stdout=out, stderr=err))
+    close(out.in)
+    close(err.in)
+    (
+      stdout = String(read(out)), 
+      stderr = String(read(err)),  
+      code = process.exitcode
+    )
+end
+
 function write_adjustbox_options(tex::IO, tp::TikzPicture)
     adjustbox_options = []
     if !isempty(tp.width)
@@ -236,20 +250,24 @@ function save(f::TEX, td::TikzDocument)
 end
 
 function latexerrormsg(s)
-    beginError = false
-    for l in split(s, '\n')
-        if beginError
-            if !isempty(l) && l[1] == '?'
-                return
+    if '?' in s || '!' in s
+        beginError = false
+        for l in split(s, '\n')
+            if beginError
+                if !isempty(l) && l[1] == '?'
+                    return
+                else
+                    println(l)
+                end
             else
-                println(l)
-            end
-        else
-            if !isempty(l) && l[1] == '!'
-                println(l)
-                beginError = true
+                if !isempty(l) && l[1] == '!'
+                    println(l)
+                    beginError = true
+                end
             end
         end
+    else
+        println(s)
     end
 end
 
@@ -258,6 +276,7 @@ _joinpath(a, b) = "$a/$b"
 function _run(tp::TikzPicture, temp_dir::AbstractString, temp_filename::AbstractString; dvi::Bool=false)
     arg = String[tikzCommand()]
     latexSuccess = false
+    texlog = ""
     if tikzUseTectonic() || !success(`$(tikzCommand()) -v`)
         tectonic() do tectonic_bin
             if dvi
@@ -268,7 +287,9 @@ function _run(tp::TikzPicture, temp_dir::AbstractString, temp_filename::Abstract
                 push!(arg, "-Zshell-escape")
             end
             push!(arg, "-o$(temp_dir)")
-            latexSuccess = success(`$(arg) $(temp_filename*".tex")`)
+            result = execute(`$(arg) $(temp_filename*".tex")`)
+            latexSuccess = (result.code == 0)
+            texlog = result.stderr
         end            
     else
         if tp.enableWrite18
@@ -279,8 +300,13 @@ function _run(tp::TikzPicture, temp_dir::AbstractString, temp_filename::Abstract
         end
         push!(arg, "--output-directory=$(temp_dir)")
         latexSuccess = success(`$(arg) $(temp_filename*".tex")`)
+        try
+            texlog = read(temp_filename * ".log", String)
+        catch
+            texlog = read(_joinpath(temp_dir,"texput.log"), String)
+        end        
     end
-    return latexSuccess  
+    return latexSuccess, texlog
 end
 
 function save(f::PDF, tp::TikzPicture)
@@ -295,17 +321,10 @@ function save(f::PDF, tp::TikzPicture)
 
         # Save the TEX file in tmp dir
         save(TEX(temp_filename * ".tex"), tp)
-        latexSuccess = _run(tp, temp_dir, temp_filename)
+        latexSuccess, texlog = _run(tp, temp_dir, temp_filename)
 
-        tex_log = ""
-        try
-            tex_log = read(temp_filename * ".log", String)
-        catch
-            tex_log = read(_joinpath(temp_dir,"texput.log"), String)
-        end
-
-        if occursin("LaTeX Warning: Label(s)", tex_log)
-            latexSuccess = _run(tp, temp_dir, temp_filename)
+        if occursin("LaTeX Warning: Label(s)", texlog)
+            latexSuccess, texlog = _run(tp, temp_dir, temp_filename)
         end
 
         # Move PDF out of tmpdir regardless
@@ -330,12 +349,12 @@ function save(f::PDF, tp::TikzPicture)
 
         if !latexSuccess
             # Remove failed attempt.
-            if !standaloneWorkaround() && occursin("\\sa@placebox ->\\newpage \\global \\pdfpagewidth", tex_log)
+            if !standaloneWorkaround() && occursin("\\sa@placebox ->\\newpage \\global \\pdfpagewidth", texlog)
                 standaloneWorkaround(true)
                 save(f, tp)
                 return
             end
-            latexerrormsg(tex_log)
+            latexerrormsg(texlog)
             error("LaTeX error")
         end
     end
@@ -355,7 +374,7 @@ function save(f::PDF, td::TikzDocument)
 
         try
             save(TEX(temp_filename * ".tex"), td)
-            latexSuccess = _run(td.pictures[1], temp_dir, temp_filename)
+            latexSuccess, texlog = _run(td.pictures[1], temp_dir, temp_filename)
 
             # Move PDF out of tmpdir regardless
             if isfile("$(basefilename).pdf")
