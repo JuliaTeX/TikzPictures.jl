@@ -280,10 +280,6 @@ function _run(tp::TikzPicture, temp_dir::AbstractString, temp_filename::Abstract
         push!(arg, "--output-directory=$(temp_dir)")
         latexSuccess = success(`$(arg) $(temp_filename*".tex")`)
     end
-    if !latexSuccess
-        latexerrormsg(tex_log)
-        error("LaTeX error")
-    end  
     return latexSuccess  
 end
 
