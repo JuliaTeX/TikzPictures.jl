@@ -5,7 +5,9 @@
 
 This library allows one to create Tikz pictures and save in various formats. It integrates with IJulia, outputting SVG images to the notebook.
 
-This library will try to use the lualatex package already installed on the system. Lualatex may be installed through the texlive and miktex distributions. You should have dvisvgm installed. On Ubuntu, you can get these, if not already present, by running `sudo apt-get install texlive-latex-base` and `sudo apt-get install texlive-binaries`. If the library cannot run lualatex, it will fall back to trying to use tectonic for the compilation.
+This library will try to use the lualatex package already installed on the system. If the library cannot run lualatex, it will fall back to trying to use tectonic for the compilation. 
+
+Lualatex may be installed through the texlive and miktex distributions. You should have dvisvgm installed. On Ubuntu, you can get the required packages, if not already present, by running `sudo apt-get install pdf2svg texlive-latex-base texlive-binaries texlive-pictures texlive-latex-extra texlive-luatex`.
 
 Note: this package will attempt to turn off interpolation in the generated SVG, but this currently only works in Chrome.
 

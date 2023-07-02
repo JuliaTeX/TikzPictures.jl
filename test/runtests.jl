@@ -18,6 +18,21 @@ for file in ["testPic.pdf", "testPic.svg", "testDoc.pdf", "testDoc.tex", first.(
   end
 end
 
+# redfining bool_success so we don't have to export it from TikzPictures
+function bool_success(cmd::Cmd)
+    successful = false
+    try
+        successful = success(cmd)
+    catch ex
+        if ex isa Base.IOError
+            successful = false
+        else
+            rethrow()
+        end
+    end
+    return successful
+end
+
 # Run tests
 data = "\\draw (0,0) -- (10,10);\n\\draw (10,0) -- (0,10);\n\\node at (5,5) {tikz \$\\sqrt{\\pi}\$};"
 tp = TikzPicture(data, options="scale=0.25", preamble="")
@@ -60,9 +75,10 @@ filecontent = join(readlines("testPic.tex", keep=true))
 @test !has_environment(filecontent, "document")
 
 save(TEX("testPic"), tp) # save again with limit_to=:all
-if success(`lualatex -v`)
-  save(PDF("testPic"), tp)
-  @test isfile("testPic.pdf")
+
+if bool_success(`lualatex -v`)
+    save(PDF("testPic"), tp)
+    @test isfile("testPic.pdf")
 
     save(SVG("testPic"), tp)
     @test isfile("testPic.svg") # default SVG backend
@@ -101,7 +117,7 @@ filecontent = join(readlines("testCD.tex", keep=true)) # read with line breaks
 @test has_environment(filecontent, "tikzcd")
 @test has_environment(filecontent, "document")
 
-if success(`lualatex -v`)
+if bool_success(`lualatex -v`)
     save(PDF("testCD"), tp)
     @test isfile("testCD.pdf")
 
