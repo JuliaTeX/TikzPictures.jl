@@ -11,7 +11,7 @@ tectonic_jll = "d7dd28d6-a5e6-559c-9131-7eb760cdacc5"
 
 [compat]
 LaTeXStrings = "1.1"
-Poppler_jll = "0.87"
+Poppler_jll = "21.9"
 Requires = "1.1"
 tectonic_jll = "0.13"
 julia = "1.3"
