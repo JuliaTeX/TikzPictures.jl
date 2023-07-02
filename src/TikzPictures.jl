@@ -3,7 +3,7 @@ module TikzPictures
 export TikzPicture, PDF, TEX, TIKZ, SVG, save, tikzDeleteIntermediate, tikzCommand, tikzUseTectonic, TikzDocument, push!
 import Base: push!
 import LaTeXStrings: LaTeXString, @L_str
-import Tectonic: tectonic
+import tectonic_jll: tectonic
 export LaTeXString, @L_str
 
 _tikzDeleteIntermediate = true
@@ -97,6 +97,20 @@ function removeExtension(filename::AbstractString, extension::AbstractString)
     end
 end
 
+function bool_success(cmd::Cmd)
+    successful = false
+    try
+        successful = success(cmd)
+    catch ex
+        if ex isa Base.IOError
+            successful = false
+        else
+            rethrow()
+        end
+    end
+    return successful
+end
+
 abstract type SaveType end
 
 mutable struct PDF <: SaveType
@@ -134,8 +148,8 @@ function execute(cmd::Cmd)
     close(out.in)
     close(err.in)
     (
-      stdout = String(read(out)), 
-      stderr = String(read(err)),  
+      stdout = String(read(out)),
+      stderr = String(read(err)),
       code = process.exitcode
     )
 end
@@ -277,7 +291,7 @@ function _run(tp::TikzPicture, temp_dir::AbstractString, temp_filename::Abstract
     arg = String[tikzCommand()]
     latexSuccess = false
     texlog = ""
-    if tikzUseTectonic() || !success(`$(tikzCommand()) -v`)
+    if tikzUseTectonic() || !bool_success(`$(tikzCommand()) -v`)
         tectonic() do tectonic_bin
             if dvi
                 error("Tectonic does not currently support dvi backend")
@@ -290,7 +304,7 @@ function _run(tp::TikzPicture, temp_dir::AbstractString, temp_filename::Abstract
             result = execute(`$(arg) $(temp_filename*".tex")`)
             latexSuccess = (result.code == 0)
             texlog = result.stderr
-        end            
+        end
     else
         if tp.enableWrite18
             push!(arg, "--enable-write18")
@@ -299,12 +313,12 @@ function _run(tp::TikzPicture, temp_dir::AbstractString, temp_filename::Abstract
             push!(arg, "--output-format=dvi")
         end
         push!(arg, "--output-directory=$(temp_dir)")
-        latexSuccess = success(`$(arg) $(temp_filename*".tex")`)
+        latexSuccess = bool_success(`$(arg) $(temp_filename*".tex")`)
         try
             texlog = read(temp_filename * ".log", String)
         catch
             texlog = read(_joinpath(temp_dir,"texput.log"), String)
-        end        
+        end
     end
     return latexSuccess, texlog
 end
