@@ -1,4 +1,4 @@
-using Requires
+using Poppler_jll: pdftocairo
 export SVGBackend, PdfToSvgBackend, PopplerBackend, DVIBackend, svgBackend
 
 # types of backends that convert PDFs to SVGs
@@ -31,16 +31,12 @@ function __init__svg()
         end
     end
 
-    # define a new implementation for PopplerBackend, but only after `import Poppler_jll`
-    @require Poppler_jll="9c32591e-4766-534b-9725-b71a8799265b" begin
-        function _mkTempSvg(backend::PopplerBackend, tp::TikzPicture, temp_dir::AbstractString, temp_filename::AbstractString)
-            _mkTempPdf(tp, temp_dir, temp_filename) # convert to PDF and then to SVG
-            Poppler_jll.pdftocairo() do exe
-                return success(`$exe -svg $(temp_filename).pdf $(temp_filename).svg`)
-            end # convert PDF file in tmpdir to SVG file in tmpdir
-        end
-    end
+end
 
+function _mkTempSvg(backend::PopplerBackend, tp::TikzPicture, temp_dir::AbstractString, temp_filename::AbstractString)
+    _mkTempPdf(tp, temp_dir, temp_filename) # convert to PDF and then to SVG
+    # convert PDF file in tmpdir to SVG file in tmpdir
+    return success(`$(pdftocairo()) -svg $(temp_filename).pdf $(temp_filename).svg`)
 end
 
 #
@@ -59,13 +55,11 @@ end
 # backend initialization
 _initialize(backend::SVGBackend) = nothing # default
 _initialize(backend::PopplerBackend) =
-    if !Requires.isprecompiling()
-        @eval TikzPictures begin
-            try
-                import Poppler_jll # will trigger @require in __init__svg
-            catch
-                error("Unable to import Poppler_jll") # should not happen as long as Poppler_jll is a dependency
-            end
+    @eval TikzPictures begin
+        try
+            import Poppler_jll # will trigger @require in __init__svg
+        catch
+            error("Unable to import Poppler_jll") # should not happen as long as Poppler_jll is a dependency
         end
     end
 
