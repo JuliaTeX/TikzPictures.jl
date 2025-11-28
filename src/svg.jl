@@ -35,9 +35,8 @@ function __init__svg()
     @require Poppler_jll="9c32591e-4766-534b-9725-b71a8799265b" begin
         function _mkTempSvg(backend::PopplerBackend, tp::TikzPicture, temp_dir::AbstractString, temp_filename::AbstractString)
             _mkTempPdf(tp, temp_dir, temp_filename) # convert to PDF and then to SVG
-            Poppler_jll.pdftocairo() do exe
-                return success(`$exe -svg $(temp_filename).pdf $(temp_filename).svg`)
-            end # convert PDF file in tmpdir to SVG file in tmpdir
+            # convert PDF file in tmpdir to SVG file in tmpdir
+            return success(`$(Poppler_jll.pdftocairo()) -svg $(temp_filename).pdf $(temp_filename).svg`)
         end
     end
 

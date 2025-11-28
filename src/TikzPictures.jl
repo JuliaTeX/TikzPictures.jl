@@ -6,9 +6,9 @@ import LaTeXStrings: LaTeXString, @L_str
 import tectonic_jll: tectonic
 export LaTeXString, @L_str
 
-_tikzDeleteIntermediate = true
-_tikzCommand = "lualatex"
-_tikzUseTectonic = false
+const _tikzDeleteIntermediate = Ref(true)
+const _tikzCommand = Ref(`lualatex`)
+const _tikzUseTectonic = Ref(false)
 
 mutable struct TikzPicture
     data::AbstractString
@@ -52,36 +52,30 @@ function standaloneWorkaround(value::Bool)
 end
 
 function tikzDeleteIntermediate(value::Bool)
-    global _tikzDeleteIntermediate
-    _tikzDeleteIntermediate = value
+    _tikzDeleteIntermediate[] = value
     nothing
 end
 
 function tikzDeleteIntermediate()
-    global _tikzDeleteIntermediate
-    _tikzDeleteIntermediate
+    _tikzDeleteIntermediate[]
 end
 
 function tikzCommand(value::AbstractString)
-    global _tikzCommand
-    _tikzCommand = value
+    _tikzCommand[] = value
     nothing
 end
 
 function tikzCommand()
-    global _tikzCommand
-    _tikzCommand
+    _tikzCommand[]
 end
 
 function tikzUseTectonic(value::Bool)
-    global _tikzUseTectonic
-    _tikzUseTectonic = value
+    _tikzUseTectonic[] = value
     nothing
 end
 
 function tikzUseTectonic()
-    global _tikzUseTectonic
-    _tikzUseTectonic
+    _tikzUseTectonic[]
 end
 
 function push!(td::TikzDocument, tp::TikzPicture; caption="")
@@ -288,32 +282,30 @@ end
 _joinpath(a, b) = "$a/$b"
 
 function _run(tp::TikzPicture, temp_dir::AbstractString, temp_filename::AbstractString; dvi::Bool=false)
-    arg = String[tikzCommand()]
+    cmd = tikzCommand()
     latexSuccess = false
     texlog = ""
     if tikzUseTectonic() || !bool_success(`$(tikzCommand()) -v`)
-        tectonic() do tectonic_bin
-            if dvi
-                error("Tectonic does not currently support dvi backend")
-            end
-            arg[1] = tectonic_bin
-            if tp.enableWrite18
-                push!(arg, "-Zshell-escape")
-            end
-            push!(arg, "-o$(temp_dir)")
-            result = execute(`$(arg) $(temp_filename*".tex")`)
-            latexSuccess = (result.code == 0)
-            texlog = result.stderr
+        if dvi
+            error("Tectonic does not currently support dvi backend")
         end
+        cmd = tectonic()
+        if tp.enableWrite18
+            cmd = `$(cmd) -Zshell-escape`
+        end
+        cmd = `$(cmd) -Zshell-escape -o$(temp_dir)`
+        result = execute(`$(cmd) $(temp_filename*".tex")`)
+        latexSuccess = (result.code == 0)
+        texlog = result.stderr
     else
         if tp.enableWrite18
-            push!(arg, "--enable-write18")
+            cmd = `$(cmd) --enable-write18`
         end
         if dvi
-            push!(arg, "--output-format=dvi")
+            cmd = `$(cmd) --output-format=dvi`
         end
-        push!(arg, "--output-directory=$(temp_dir)")
-        latexSuccess = bool_success(`$(arg) $(temp_filename*".tex")`)
+        cmd = `$(cmd) --output-directory=$(temp_dir)`
+        latexSuccess = bool_success(`$(cmd) $(temp_filename*".tex")`)
         try
             texlog = read(temp_filename * ".log", String)
         catch
