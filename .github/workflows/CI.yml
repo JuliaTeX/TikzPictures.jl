@@ -33,7 +33,7 @@ jobs:
           arch: ${{ matrix.arch }}
 
       # using a cache can speed up execution times
-      - uses: julia-actions/cache@v2
+      - uses: julia-actions/cache@v3
 
       # TexLive installation
       - name: Install TexLive
