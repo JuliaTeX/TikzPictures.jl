@@ -53,15 +53,12 @@ function _mkTempSvg(tp::TikzPicture, temp_dir::AbstractString, temp_filename::Ab
 end
 
 # backend initialization
+# Poppler_jll is a regular (non-weak) dependency, already `using`-imported at the
+# top of this file, so no extra initialization is needed here. Evaluating into
+# this module at __init__ time (as a previous version of this function did)
+# breaks incremental compilation of packages that load TikzPictures as an
+# already-precompiled dependency.
 _initialize(backend::SVGBackend) = nothing # default
-_initialize(backend::PopplerBackend) =
-    @eval TikzPictures begin
-        try
-            import Poppler_jll # will trigger @require in __init__svg
-        catch
-            error("Unable to import Poppler_jll") # should not happen as long as Poppler_jll is a dependency
-        end
-    end
 
 # compile a temporary PDF file that can be converted to SVG
 function _mkTempPdf(tp::TikzPicture, temp_dir::AbstractString, temp_filename::AbstractString; dvi::Bool=false)
